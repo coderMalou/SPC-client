@@ -31,6 +31,8 @@ const { formattedTime } = useTime()
 
 <style scoped>
 .top-bar {
+    position: fixed;
+    top: 0;
     width: 100%;
     background: #001529;
     color: #fff;
@@ -39,6 +41,7 @@ const { formattedTime } = useTime()
     align-items: center;
     padding: 0 24px;
     justify-content: space-between;
+    z-index: 9999;
 }
 
 .system-name {
