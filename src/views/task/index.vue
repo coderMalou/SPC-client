@@ -105,7 +105,7 @@ const currentStatus = ref(0)
 .task-container {
     width: 100%;
     height: 100%;
-    padding: 20px;
+    padding: 20px 80px;
     background-color: var(--color-model-bg);
     overflow-y: auto;
 }
