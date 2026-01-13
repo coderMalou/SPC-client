@@ -1,0 +1,3 @@
+<template>
+    <svg width="16" height="16" viewBox="0 0 48 48" fill="none"><path d="M15.5 9.274C10.419 12.214 7 17.708 7 24c0 9.389 7.611 17 17 17s17-7.611 17-17c0-6.292-3.419-11.786-8.5-14.726M24 5v22" stroke="#4a90e2" stroke-width="4"/></svg>
+</template>

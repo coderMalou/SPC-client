@@ -27,6 +27,10 @@
   --color-background-soft: var(--vt-c-white-soft);
   --color-background-mute: var(--vt-c-white-mute);
 
+  --color-model-bg: #f5f5f5;
+  --color-dark-text: #030303cc;
+  --color-Hlight-text: #1890ff;
+
   --color-border: var(--vt-c-divider-light-2);
   --color-border-hover: var(--vt-c-divider-light-1);
 

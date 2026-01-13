@@ -34,7 +34,8 @@ body {
 
 .main-content {
   width: 100%;
-  margin: 30px auto;
+  height: calc(100% - 60px);
+  margin: 60px auto;
   position: relative;
 }
 </style>
