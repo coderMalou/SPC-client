@@ -10,46 +10,65 @@
                     padding: 10px 0;"
                 >
                     <div class="search-bar">
-                        <input type="text" id="taskNumber" class="form-control" placeholder="搜索工单"
+                        <input 
+                            type="text" 
+                            id="taskNumber" 
+                            class="form-control" 
+                            placeholder="搜索工单"
+                            v-model="taskNumberSearch"
                             style="font-size: 15px; border: none;display: flex; align-items: center; line-height: normal;">
                         <searchScope />
                     </div>
                 </div>
-                <div class="show-taskNo" @click="()=>isShowTaskNo = !isShowTaskNo">
+                <div class="show-taskNo" @click="toggleTaskNoList">
                     <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">工单号</span>
-                    <downArrow />
+                    <downArrow :class="['arrow-icon', { 'arrow-rotate': !isShowTaskNo }]" />
                 </div>
-
-                <div class="taskNo-list"  v-for="item in taskNoList" :key="item.no" :class="{active: currentNo === item.no}">
-                    <div class="taskNo" :class="{active: currentNo === item.no}" @click="()=>currentNo = item.no">{{ item.no }}</div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
-                        <div class="status-badge badge-done" v-if="item.status === 1">已关闭</div>
-                        <div class="status-badge status-done" v-else>已启用</div>
-                        <powerOff v-if="item.status !== 1" />
+                <transition name="tree-collapse">
+                    <div v-show="isShowTaskNo" class="taskNo-container">
+                        <div 
+                            v-for="item in filteredTaskNoList" 
+                            :key="item.no" 
+                            class="taskNo-list" 
+                            :class="{active: currentNo === item.no}"
+                        >
+                            <div 
+                                class="taskNo" 
+                                :class="{active: currentNo === item.no}" 
+                                @click="()=>handleTaskNoClick(item.no)"
+                            >
+                                {{ item.no }}
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
+                                <div class="status-badge badge-done" v-if="item.status === 1">已关闭</div>
+                                <div class="status-badge status-done" v-else>已启用</div>
+                                <powerOff @click="()=>item.status = item.status ===  1 ? 0 : 1" />
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </transition>
             </div>
             <div class="task-list">
                 <div style="padding: 5px 10px; width: 100%; font-size: 21px;font-weight: bold; color: var(--color-dark-text);">任务列表</div>
                 <div style="width: 100%; border: solid 0.5px var(--color-model-bg);color: transparent;height: 0;"></div>
                 <div class="operate-bar">
                     <div class="operate-btn">
-                        <button class="operate-btn add">
-                            <plusIcon />
+                        <el-button type="primary">
+                            <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 30px;">添加</span>
-                        </button>
-                        <button class="operate-btn add">
-                            <plusIcon />
+                        </el-button>
+                        <el-button type="primary">
+                            <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 50px;">批量添加</span>
-                        </button>
-                        <button class="operate-btn norm">
-                            <exportIcon />
+                        </el-button>
+                        <el-button type="success" plain @click="handleExport">
+                            <el-icon><exportIcon /></el-icon>
                             <span style="min-width: 30px;">导出</span>
-                        </button>
-                        <button class="operate-btn norm">
-                            <copyIcon />
+                        </el-button>
+                        <el-button type="success" plain @click="handleCopy">
+                            <el-icon><copyIcon /></el-icon>
                             <span style="min-width: 30px;">复制</span>
-                        </button>
+                        </el-button>
                     </div>
                     <div class="filter-search">
                         <el-select v-model="currentType" placeholder="全部类别" style="width: 120px">
@@ -68,36 +87,108 @@
                             :value="item.id"
                             />
                         </el-select>
-                        <el-input placeholder="输入产品编码或名称" style="width: 210px;"></el-input>
-                        <el-button type="primary">搜索</el-button>
+                        <el-input 
+                            v-model="productSearch" 
+                            placeholder="输入产品编码或名称" 
+                            style="width: 160px;"
+                            @keyup.enter="handleSearch"
+                        ></el-input>
+                        <el-button type="primary" @click="handleSearch">搜索</el-button>
                     </div>
                 </div>
-                <el-table
-                    :data="tableData"
-                    row-key="tid"
-                    style="width: 100%; height: 70%;"
-                    @selection-change="handleMultiSelect"
-                >
-                    <el-table-column type="selection" :selectable="()=>1" width="30"></el-table-column>
-                    <el-table-column prop="line" label="行号" width="64" align="center"></el-table-column>
-                    <el-table-column prop="ticket" label="工单号" width="150"></el-table-column>
-                    <el-table-column prop="pid" label="产品编码" width="" align="center"></el-table-column>
-                    <el-table-column prop="pname" label="产品名称" width="" align="center"></el-table-column>
-                    <el-table-column prop="tid" label="工作任务号" width="120"></el-table-column>
-                    <el-table-column prop="tname" label="工序作业名称" width="120" align="center"></el-table-column>
-                    <el-table-column prop="devid" label="设备编号" width="" align="center"></el-table-column>
-                    <el-table-column prop="status" label="状态" width="" align="center"></el-table-column>
-                    <el-table-column prop="stime" label="最近启用时间" width="120" align="center"></el-table-column>
-                    <el-table-column prop="ctime" label="创建时间" width="120" align="center"></el-table-column>
-                    <el-table-column label="操作" width=""></el-table-column>
-                </el-table>
+                <div class="table-container">
+                    <el-table
+                        :data="pagedTableData"
+                        row-key="tid"
+                        style="width: 100%; height: 100%"
+                        @selection-change="handleMultiSelect"
+                    >
+                        <el-table-column type="selection" :selectable="()=>true" width="30"></el-table-column>
+                        <el-table-column prop="line" label="行号" width="55" align="center"></el-table-column>
+                        <el-table-column prop="ticket" label="工单号" width="100" align="center"></el-table-column>
+                        <el-table-column prop="pid" label="产品编码" width="80" align="center"></el-table-column>
+                        <el-table-column prop="pname" label="产品名称" width="80" align="center"></el-table-column>
+                        <el-table-column prop="tid" label="工作任务号" width="100" align="center"></el-table-column>
+                        <el-table-column prop="tname" label="工序作业名称" width="100" align="center"></el-table-column>
+                        <el-table-column prop="devid" label="设备编号" width="80" align="center"></el-table-column>
+                        <el-table-column prop="status" label="状态" width="70" align="center">
+                            <template #default="scope">
+                                <span :class="getStatusClass(scope.row.status)">
+                                    {{ getStatusText(scope.row.status) }}
+                                </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="stime" label="最近启用时间" width="100" align="center"></el-table-column>
+                        <el-table-column prop="ctime" label="创建时间" width="90" align="center"></el-table-column>
+                        <el-table-column label="操作" width="270" align="center">
+                            <template #default="scope">
+                                <div class="operation-buttons">
+                                    <el-button 
+                                        type="primary" 
+                                        size="small" 
+                                        class="btn-detail"
+                                        @click="handleDetail(scope.row)"
+                                    >
+                                        详情
+                                    </el-button>
+                                    <el-button 
+                                        type="warning" 
+                                        size="small" 
+                                        class="btn-edit"
+                                        @click="handleEdit(scope.row)"
+                                    >
+                                        编辑
+                                    </el-button>
+                                    <el-button 
+                                        type="primary" 
+                                        size="small" 
+                                        class="btn-chart"
+                                        @click="handleChart(scope.row)"
+                                    >
+                                        控制图
+                                    </el-button>
+                                    <el-button 
+                                        type="warning" 
+                                        size="small" 
+                                        class="btn-delete"
+                                        @click="handleDelete(scope.row)"
+                                    >
+                                        删除
+                                    </el-button>
+                                </div>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+                
+                <!-- 分页组件 -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        共 {{ filteredTableData.length }} 条数据，当前显示 {{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, filteredTableData.length) }} 条
+                    </div>
+                    <el-pagination
+                        v-model:current-page="currentPage"
+                        v-model:page-size="pageSize"
+                        :page-sizes="[10, 20, 50, 100]"
+                        :small="true"
+                        :disabled="false"
+                        :background="true"
+                        layout="sizes, prev, pager, next, jumper"
+                        :total="filteredTableData.length"
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                    />
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue' 
+import { ref, computed, onMounted } from 'vue' 
+import * as XLSX from 'xlsx'
+import { ElMessage } from 'element-plus'
+
 import searchScope from '@/components/icons/searchScope.vue';
 import downArrow from '@/components/icons/downArrow.vue';
 import powerOff from '@/components/icons/powerOff.vue';
@@ -105,8 +196,18 @@ import exportIcon from '@/components/icons/exportIcon.vue';
 import copyIcon from '@/components/icons/copyIcon.vue';
 import plusIcon from '@/components/icons/plusIcon.vue';
 
+// 左侧工单列表显示控制
 const isShowTaskNo = ref(true)
 
+// 搜索相关
+const taskNumberSearch = ref('')
+const productSearch = ref('')
+
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// 原始数据
 const taskNoList = ref([
     {no:'WO20251013001', status: 0},
     {no:'WO20251013002', status: 0},
@@ -129,10 +230,18 @@ const statusList = ref([
     {name: '停用', id: 2}
 ])
 
-const tableData = ref([
+// 模拟的表格数据
+const rawTableData = ref([
     {line:1, ticket:'WO20251013001', pid:'123456', pname:'铆接总成', tid:'WO20251013001-001', tname:'总成检外观', devid:'00001', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
     {line:2, ticket:'WO20251013002', pid:'123457', pname:'铆接总成', tid:'WO20251013002-001', tname:'总成检外观', devid:'00002', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
-    {line:1, ticket:'WO20251013001', pid:'123458', pname:'铆接总成', tid:'WO20251013001-002', tname:'总成检外观', devid:'00001', status:'1', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
+    {line:3, ticket:'WO20251013001', pid:'123458', pname:'铆接总成', tid:'WO20251013001-002', tname:'总成检外观', devid:'00001', status:'1', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
+    {line:4, ticket:'WO20251013003', pid:'123459', pname:'轴套组件', tid:'WO20251013003-001', tname:'轴套装配', devid:'00003', status:'2', stime:'2025-10-12 14:20:10', ctime:'2025-10-01 08:30:00'},
+    {line:5, ticket:'WO20251013004', pid:'123460', pname:'轴套组件', tid:'WO20251013004-001', tname:'轴套装配', devid:'00003', status:'0', stime:'2025-10-12 16:45:30', ctime:'2025-10-02 09:15:00'},
+    {line:6, ticket:'WO20251013005', pid:'123461', pname:'齿轮箱体', tid:'WO20251013005-001', tname:'齿轮装配', devid:'00004', status:'1', stime:'2025-10-11 10:30:00', ctime:'2025-10-03 13:20:00'},
+    {line:7, ticket:'WO20251013006', pid:'123462', pname:'齿轮箱体', tid:'WO20251013006-001', tname:'齿轮装配', devid:'00004', status:'0', stime:'2025-10-11 15:20:00', ctime:'2025-10-03 13:20:00'},
+    {line:8, ticket:'WO20251013001', pid:'123463', pname:'轴承座', tid:'WO20251013001-003', tname:'轴承装配', devid:'00005', status:'0', stime:'2025-10-10 09:10:20', ctime:'2025-10-04 10:00:00'},
+    {line:9, ticket:'WO20251013002', pid:'123464', pname:'轴承座', tid:'WO20251013002-002', tname:'轴承装配', devid:'00005', status:'2', stime:'2025-10-10 11:30:40', ctime:'2025-10-04 10:00:00'},
+    {line:10, ticket:'WO20251013003', pid:'123465', pname:'法兰盘', tid:'WO20251013003-002', tname:'法兰加工', devid:'00006', status:'0', stime:'2025-10-09 13:45:00', ctime:'2025-10-05 14:30:00'},
 ])
 
 const currentNo = ref(taskNoList.value[0]?.no || '')
@@ -140,9 +249,245 @@ const currentType = ref(0)
 const currentStatus = ref(0)
 const selectedData = ref([])
 
+// 计算属性：过滤左侧工单列表
+const filteredTaskNoList = computed(() => {
+    if (!taskNumberSearch.value) {
+        return taskNoList.value
+    }
+    return taskNoList.value.filter(item => 
+        item.no.toLowerCase().includes(taskNumberSearch.value.toLowerCase())
+    )
+})
+
+// 计算属性：过滤表格数据
+const filteredTableData = computed(() => {
+    return rawTableData.value.filter(item => {
+        // 按工单号过滤
+        if (currentNo.value && item.ticket !== currentNo.value) {
+            return false
+        }
+        
+        // 按类别过滤
+        if (currentType.value > 0) {
+            // 这里可以根据实际业务逻辑过滤，暂时使用模拟逻辑
+            if (currentType.value === 1 && item.tname !== '总成检外观') return false
+            if (currentType.value === 2 && item.tname !== '轴套装配') return false
+            if (currentType.value === 3 && item.tname !== '齿轮装配') return false
+        }
+        
+        // 按状态过滤
+        if (currentStatus.value > 0) {
+            if (item.status !== String(currentStatus.value - 1)) {
+                return false
+            }
+        }
+        
+        // 按产品编码或名称搜索
+        if (productSearch.value) {
+            const search = productSearch.value.toLowerCase()
+            if (!item.pid.toLowerCase().includes(search) && 
+                !item.pname.toLowerCase().includes(search)) {
+                return false
+            }
+        }
+        
+        return true
+    })
+})
+
+// 计算属性：分页后的表格数据
+const pagedTableData = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    return filteredTableData.value.slice(start, end)
+})
+
+// 状态显示格式化
+const getStatusText = (status: string) => {
+    switch(status) {
+        case '0': return '启用'
+        case '1': return '已关闭'
+        case '2': return '停用'
+        default: return '未知'
+    }
+}
+
+const getStatusClass = (status: string) => {
+    switch(status) {
+        case '0': return 'status-text status-open'
+        case '1': return 'status-text status-closed'
+        case '2': return 'status-text status-stopped'
+        default: return 'status-text'
+    }
+}
+
+// 事件处理函数
+const toggleTaskNoList = () => {
+    isShowTaskNo.value = !isShowTaskNo.value
+}
+
+const handleTaskNoClick = (no: string) => {
+    currentNo.value = no
+}
+
 const handleMultiSelect = (val:any) => {
     selectedData.value = val
 }
+
+const handleEdit = (row: any) => {
+    console.log('编辑行:', row)
+}
+const handleDetail = (row: any) => {
+    console.log('详情:', row)
+}
+const handleChart = (row: any) => {
+    console.log('控制图:', row)
+}
+const handleDelete = (row: any) => {
+    const ind = rawTableData.value.findIndex((item:any)=>{
+        return item.ticket === row.ticket && item.pid === row.pid
+    })
+    rawTableData.value.splice(ind,1)
+    console.log('删除:', row)
+}
+
+
+const handleSearch = () => {
+    // 搜索时重置到第一页
+    currentPage.value = 1
+    console.log('搜索条件:', { 
+        taskNumberSearch: taskNumberSearch.value, 
+        productSearch: productSearch.value,
+        currentType: currentType.value,
+        currentStatus: currentStatus.value
+    })
+}
+
+// 分页相关事件
+const handleSizeChange = (size: number) => {
+    pageSize.value = size
+    currentPage.value = 1
+}
+
+const handleCurrentChange = (page: number) => {
+    currentPage.value = page
+}
+
+const handleExport = () => {
+    if (selectedData.value.length === 0) {
+        ElMessage.warning('请先选择要导出的数据')
+        return
+    }
+    
+    try {
+        // 准备Excel数据
+        const worksheetData = [
+            // 表头
+            ['行号', '工单号', '产品编码', '产品名称', '工作任务号', '工序作业名称', '设备编号', '状态', '最近启用时间', '创建时间']
+        ]
+        
+        // 添加选中行的数据
+        selectedData.value.forEach((item:any) => {
+            worksheetData.push([
+                item.line,
+                item.ticket,
+                item.pid,
+                item.pname,
+                item.tid,
+                item.tname,
+                item.devid,
+                getStatusText(item.status), // 转换状态为可读文本
+                item.stime,
+                item.ctime
+            ])
+        })
+        
+        // 创建工作簿和工作表
+        const workbook = XLSX.utils.book_new()
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+        
+        // 设置列宽
+        const colWidths = [
+            { wch: 8 },   // 行号
+            { wch: 15 },  // 工单号
+            { wch: 12 },  // 产品编码
+            { wch: 20 },  // 产品名称
+            { wch: 15 },  // 工作任务号
+            { wch: 15 },  // 工序作业名称
+            { wch: 12 },  // 设备编号
+            { wch: 8 },   // 状态
+            { wch: 20 },  // 最近启用时间
+            { wch: 20 }   // 创建时间
+        ]
+        worksheet['!cols'] = colWidths
+        
+        // 添加工作表到工作簿
+        XLSX.utils.book_append_sheet(workbook, worksheet, '任务列表')
+        
+        // 生成Excel文件并下载
+        const timestamp = new Date().getTime()
+        const fileName = `任务列表_${timestamp}.xlsx`
+        XLSX.writeFile(workbook, fileName)
+        
+        ElMessage.success(`成功导出 ${selectedData.value.length} 条数据`)
+        
+    } catch (error) {
+        console.error('导出Excel失败:', error)
+        ElMessage.error('导出失败，请重试')
+    }
+}
+
+const handleCopy = async () => {
+    if (selectedData.value.length === 0) {
+        ElMessage.warning('请先选择要复制的数据')
+        return
+    }
+    
+    try {
+        // 准备表格格式的文本
+        let clipboardText = '行号\t工单号\t产品编码\t产品名称\t工作任务号\t工序作业名称\t设备编号\t状态\t最近启用时间\t创建时间\n'
+        
+        // 添加选中行的数据
+        selectedData.value.forEach((item:any) => {
+            clipboardText += `${item.line}\t${item.ticket}\t${item.pid}\t${item.pname}\t${item.tid}\t${item.tname}\t${item.devid}\t${getStatusText(item.status)}\t${item.stime}\t${item.ctime}\n`
+        })
+        
+        // 使用现代Clipboard API
+        if (navigator.clipboard && window.isSecureContext) {
+            // 在HTTPS环境下使用现代API
+            await navigator.clipboard.writeText(clipboardText)
+        } else {
+            // 回退方案：使用textArea
+            const textArea = document.createElement('textarea')
+            textArea.value = clipboardText
+            textArea.style.position = 'fixed'
+            textArea.style.opacity = '0'
+            document.body.appendChild(textArea)
+            textArea.select()
+            
+            try {
+                document.execCommand('copy')
+            } catch (err) {
+                console.error('复制失败:', err)
+                ElMessage.error('复制失败，请重试')
+                return
+            }
+            
+            document.body.removeChild(textArea)
+        }
+        
+        ElMessage.success(`成功复制 ${selectedData.value.length} 条数据到剪切板`)
+        
+    } catch (error) {
+        console.error('复制到剪切板失败:', error)
+        ElMessage.error('复制失败，请重试')
+    }
+}
+
+// 初始化
+onMounted(() => {
+    console.log('组件已加载')
+})
 </script>
 
 <style scoped lang="scss">
@@ -190,7 +535,7 @@ const handleMultiSelect = (val:any) => {
     padding: 6px;
 }
 
-.search-bar:focus {
+.search-bar:focus-within {
     border-color: #1890ff !important;
 }
 
@@ -200,6 +545,52 @@ const handleMultiSelect = (val:any) => {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    padding: 8px 0;
+    transition: all 0.3s ease;
+}
+
+.show-taskNo:hover {
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-left: 0;
+}
+
+/* 箭头旋转动画 */
+.arrow-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: rotate(0deg);
+}
+
+.arrow-icon.arrow-rotate {
+    transform: rotate(-180deg);
+}
+
+/* 树形结构展开收起动画 */
+.tree-collapse-enter-active,
+.tree-collapse-leave-active {
+    transition: all 0.3s ease;
+    max-height: 1000px;
+    overflow: hidden;
+}
+
+.tree-collapse-enter-from,
+.tree-collapse-leave-to {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.taskNo-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 10px;
 }
 
 .taskNo-list {
@@ -209,10 +600,16 @@ const handleMultiSelect = (val:any) => {
     padding: 2px 0;
     gap: 16px;
     border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 .taskNo-list.active {
     background-color: #e6f7ff;
+}
+
+.taskNo-list:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
 }
 
 .taskNo {
@@ -222,6 +619,9 @@ const handleMultiSelect = (val:any) => {
     border-radius: 6px;
     border: transparent;
     font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
 }
 .taskNo.active {
     color: var(--color-Hlight-text);
@@ -256,6 +656,23 @@ const handleMultiSelect = (val:any) => {
     }
 }
 
+// 状态文本样式
+.status-text {
+    font-weight: 600;
+    
+    &.status-open {
+        color: #52c41a;
+    }
+    
+    &.status-closed {
+        color: #929690;
+    }
+    
+    &.status-stopped {
+        color: #ff4d4f;
+    }
+}
+
 .task-list {
     width: 100%;
     height: 100%;
@@ -277,7 +694,6 @@ const handleMultiSelect = (val:any) => {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    gap: 8px;
     font-size: 14px;
     border-radius: 4px;
     transition: all 0.3s;
@@ -309,5 +725,45 @@ const handleMultiSelect = (val:any) => {
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
+}
+
+.table-container {
+    flex: 1;
+    width: calc(100vw - 375px);
+    overflow-x: auto;
+    overflow-y: hidden; 
+    border: 1px solid #ebeef5;
+    border-radius: 4px;
+}
+
+// 分页样式
+.pagination-container {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-top: 1px solid #f0f0f0;
+    margin-top: auto;
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: #666;
+}
+
+// Element Plus 分页器自定义样式
+:deep(.el-pagination) {
+    .el-pagination__total {
+        font-size: 14px;
+    }
+    
+    .el-pagination__jump {
+        font-size: 14px;
+    }
+    
+    .el-select .el-input__inner {
+        font-size: 14px;
+    }
 }
 </style>
