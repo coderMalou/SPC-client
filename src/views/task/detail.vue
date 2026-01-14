@@ -2,25 +2,104 @@
     <div class="task-detail" v-if="isShowDetails">
         <div class="redirector">
             <div style="display: inline-flex; font-size: 16px; gap: 8px; align-items: center;">
-                <el-button link type="primary"><span style="font-size: 16px;text-align: center;">任务管理</span></el-button>
+                <el-button link type="primary" @click="$emit('close')">
+                    <span style="font-size: 18px;text-align: center;">任务管理</span>
+                </el-button>
                 <span style="color: #ccc; font-size: 21px;">></span>
-                <span style="font-size: 16px;text-align: center;color: var(--color-dark-text);">任务详情</span>
+                <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">任务详情</span>
             </div>
             <el-button @click="$emit('close')">
                 <el-icon><left-arrow /></el-icon>
-                <span style="font-size: 16px;">返回任务管理</span>
+                <span style="font-size: 18px;">返回任务管理</span>
             </el-button>
         </div>
         <div class="stat-card"><!--基本信息-->
             <div class="stat-card header"><span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">任务基本信息</span></div>
             <div class="divider"></div>
             <div class="stat-card content">
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">工作任务号</span>
+                    <el-input disabled v-model="selectedItem.tid"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">工单号</span>
+                    <el-input disabled v-model="selectedItem.ticket"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">行号</span>
+                    <el-input disabled v-model="selectedItem.line"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">产品编码</span>
+                    <el-input disabled v-model="selectedItem.pid"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">产品名称</span>
+                    <el-input disabled v-model="selectedItem.pname"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">规格/型号</span>
+                    <el-input disabled v-model="spec"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">计量单位</span>
+                    <el-input disabled v-model="unit"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">工艺路线名称</span>
+                    <el-input disabled v-model="technic"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">创建时间</span>
+                    <el-input disabled v-model="selectedItem.ctime"></el-input>
+                </div>
             </div>
         </div>
         <div class="stat-card"><!--工序信息-->
             <div class="stat-card header"><span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">工序作业信息</span></div>
-            <div class="divider"></div>
+            <div class="divider">
+            </div>
             <div class="stat-card content">
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">工序序号</span>
+                    <el-input disabled v-model="techList.techid"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">工序作业名称</span>
+                    <el-input disabled v-model="techList.techname"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">质量特性</span>
+                    <el-input disabled v-model="techList.ch"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">目标标准值</span>
+                    <el-input disabled v-model="techList.standard"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">USL</span>
+                    <el-input disabled v-model="techList.usl"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">LSL</span>
+                    <el-input disabled v-model="techList.lsl"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">组内样本量</span>
+                    <el-input disabled v-model="techList.set"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">总体样本量</span>
+                    <el-input disabled v-model="techList.total"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">作业设备编码</span>
+                    <el-input disabled v-model="selectedItem.devid"></el-input>
+                </div>
+                <div class="stat-card sub">
+                    <span style="color: var(--color-dark-text);">仪器/治具编码</span>
+                    <el-input disabled v-model="selectedItem.devid"></el-input>
+                </div>
             </div>
         </div>
         <div class="measure-table">
@@ -52,6 +131,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
 import excelIcon from '@/components/icons/excelIcon.vue';
@@ -75,6 +155,20 @@ const prop = defineProps<{
 }>()
 
 defineEmits(['close'])
+
+const spec = ref('Ø50×30')
+const unit = ref('mm')
+const technic = ref('车削→钻孔→热处理→磨削')
+const techList = ref({
+    techid: 'SW251015001',
+    techname: '常规机加工',
+    ch: '外径',
+    standard: '50',
+    usl: '50',
+    lsl: '50',
+    set: '5',
+    total: '5',
+})
 </script>
 
 <style scoped lang="scss">
@@ -116,12 +210,16 @@ defineEmits(['close'])
         padding: 8px 16px;
         display: flex;
         flex-direction: row;
-        flex-wrap: 1;
+        flex-wrap: wrap;
     }
 
     &.sub {
-        flex: auto;
         width: 25%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+        padding: 8px;
     }
 }
 .measure-table {
