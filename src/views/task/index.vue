@@ -185,6 +185,7 @@
             :is-show-details="isShowDetails"
             :selected-item="selectedItem"
             @close="()=>isShowDetails = false"
+            @change="handleStatusChange"
         />
     </div>
 </template>
@@ -512,6 +513,18 @@ const handleCopy = async () => {
     }
 }
 
+const handleStatusChange = () => {
+    const ind = rawTableData.value.findIndex((item:any)=>{
+        return item.ticket === selectedItem.value.ticket && item.pid === selectedItem.value.pid
+    })
+    const curStatus = rawTableData.value[ind]?.status
+    rawTableData.value.map((item:data, index)=>{
+        if (index === ind) {
+            item.status = curStatus === '0' ? '1' : '0'
+        }
+    })
+}
+
 // 初始化
 onMounted(() => {
     console.log('组件已加载')
@@ -530,11 +543,12 @@ onMounted(() => {
 }
 
 .task-total {
+    position: relative;
     width: 100%;
     height: 100%;
     display: flex;
     gap: 5px;
-    transition: transform 0.3s ease;;
+    transition: transform 0.3s ease;    
 }
 
 .task-total.hide {
