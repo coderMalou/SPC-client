@@ -116,98 +116,195 @@
             <div class="stat-card header">
                 <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid+`-${selectedItem.pname}` }}</span>
                 <div style="display: flex; align-items: center;">
-                    <el-button type="primary" plain>
-                        <el-icon><list-icon/></el-icon>
-                        <span style="text-align: center;">新增数据</span>
+                     <el-button type="primary" plain @click="addNewRow">
+                        <el-icon><list-icon /></el-icon> 新增数据
                     </el-button>
-                    <el-button type="primary" plain>
-                        <el-icon><excel-icon/></el-icon>
-                        <span style="text-align: center;">导出导入模板</span>
+
+                    <el-button type="primary" plain @click="exportTemplate">
+                        <el-icon><excel-icon /></el-icon> 导出导入模板
                     </el-button>
-                    <el-button type="success" plain>
-                        <el-icon><excel-icon/></el-icon>
-                        <span style="text-align: center;">导入Excel</span>
+
+                    <el-button type="success" plain @click="importExcel">
+                        <el-icon><excel-icon /></el-icon> 导入Excel
                     </el-button>
-                    <el-button type="success" plain>
-                        <el-icon><excel-icon/></el-icon>
-                        <span style="text-align: center;">导出Excel</span>
+
+                    <el-button type="success" plain @click="exportExcel">
+                        <el-icon><excel-icon /></el-icon> 导出Excel
                     </el-button>
                 </div>
             </div>
             <div class="divider"></div>
             <div class="control-chart-data">
                 <el-table
-                    :data="pagedData"
+                    :data="tableData"
                     style="width: 100%;"
                     row-key="id"
                     :row-class-name="getRowClass"
                     :header-row-class-name="'header-row'"
                 >
-                    <el-table-column prop="subgroupId" label="样本组" width="100" align="center"></el-table-column>
-                    <el-table-column prop="datetime" label="日期时间" width="120" align="center"></el-table-column>
+                    <el-table-column prop="subgroupId" label="样本组" width="100" align="center">
+                    <template #default="scope">
+                        <el-input
+                        v-if="scope.row.isNew"
+                        v-model="scope.row.subgroupId"
+                        size="small"
+                        />
+                        <span v-else>{{ scope.row.subgroupId }}</span>
+                    </template>
+                    </el-table-column>
+
+                    <el-table-column prop="datetime" label="日期时间" width="120" align="center">
+                    <template #default="scope">
+                        <el-input
+                        v-if="scope.row.isNew"
+                        v-model="scope.row.datetime"
+                        size="small"
+                        />
+                        <span v-else>{{ scope.row.datetime }}</span>
+                    </template>
+                    </el-table-column>
+
+                    <!-- 五个样本值 -->
                     <el-table-column prop="value1" label="值1" width="85" align="center">
                     <template #default="scope">
-                        <span :class="getDataPointClass(scope.row, 0)">{{ scope.row.value1 }}</span>
+                        <el-input
+                        v-if="scope.row.isNew"
+                        v-model.number="scope.row.value1"
+                        size="small"
+                        @input="calcNewRow(scope.row)"
+                        />
+                        <span v-else :class="getDataPointClass(scope.row, 0)">
+                        {{ scope.row.value1 }}
+                        </span>
                     </template>
                     </el-table-column>
+
                     <el-table-column prop="value2" label="值2" width="85" align="center">
                     <template #default="scope">
-                        <span :class="getDataPointClass(scope.row, 1)">{{ scope.row.value2 }}</span>
+                        <el-input
+                        v-if="scope.row.isNew"
+                        v-model.number="scope.row.value2"
+                        size="small"
+                        @input="calcNewRow(scope.row)"
+                        />
+                        <span v-else :class="getDataPointClass(scope.row, 1)">
+                        {{ scope.row.value2 }}
+                        </span>
                     </template>
                     </el-table-column>
+
                     <el-table-column prop="value3" label="值3" width="85" align="center">
                     <template #default="scope">
-                        <span :class="getDataPointClass(scope.row, 2)">{{ scope.row.value3 }}</span>
+                        <el-input
+                        v-if="scope.row.isNew"
+                        v-model.number="scope.row.value3"
+                        size="small"
+                        @input="calcNewRow(scope.row)"
+                        />
+                        <span v-else :class="getDataPointClass(scope.row, 2)">
+                        {{ scope.row.value3 }}
+                        </span>
                     </template>
                     </el-table-column>
+
                     <el-table-column prop="value4" label="值4" width="85" align="center">
                     <template #default="scope">
-                        <span :class="getDataPointClass(scope.row, 3)">{{ scope.row.value4 }}</span>
+                        <el-input
+                        v-if="scope.row.isNew"
+                        v-model.number="scope.row.value4"
+                        size="small"
+                        @input="calcNewRow(scope.row)"
+                        />
+                        <span v-else :class="getDataPointClass(scope.row, 3)">
+                        {{ scope.row.value4 }}
+                        </span>
                     </template>
                     </el-table-column>
+
                     <el-table-column prop="value5" label="值5" width="85" align="center">
                     <template #default="scope">
-                        <span :class="getDataPointClass(scope.row, 4)">{{ scope.row.value5 }}</span>
+                        <el-input
+                        v-if="scope.row.isNew"
+                        v-model.number="scope.row.value5"
+                        size="small"
+                        @input="calcNewRow(scope.row)"
+                        />
+                        <span v-else :class="getDataPointClass(scope.row, 4)">
+                        {{ scope.row.value5 }}
+                        </span>
                     </template>
                     </el-table-column>
+
+                    <!-- 均值 -->
                     <el-table-column prop="mean" label="均值" width="85" align="center">
                     <template #default="scope">
-                        <span :class="getMeanStatusClass(scope.row.mean)">{{ scope.row.mean }}</span>
+                        <span v-if="!scope.row.isNew" :class="getMeanStatusClass(scope.row.mean)">
+                        {{ scope.row.mean }}
+                        </span>
+                        <span v-else>{{ scope.row.mean ?? '--' }}</span>
                     </template>
                     </el-table-column>
+
+                    <!-- 极差 -->
                     <el-table-column prop="range" label="极差" width="85" align="center">
                     <template #default="scope">
-                        {{ scope.row.range }}
+                        {{ scope.row.isNew ? (scope.row.range ?? '--') : scope.row.range }}
                     </template>
                     </el-table-column>
+
+                    <!-- 整体均值 / 极差（原逻辑） -->
                     <el-table-column prop="overallMean" label="整体均值" width="85" align="center">
-                    <template #default>
-                        {{ overallMean }}
-                    </template>
+                    <template #default>{{ overallMean }}</template>
                     </el-table-column>
+
                     <el-table-column prop="overallRange" label="整体极差" width="85" align="center">
-                    <template #default>
-                        {{ overallRange }}
-                    </template>
+                    <template #default>{{ overallRange }}</template>
                     </el-table-column>
+
+                    <!-- 状态 -->
                     <el-table-column prop="status" label="状态" width="100" align="center">
                     <template #default="scope">
                         <el-tag
+                        v-if="!scope.row.isNew"
                         :type="getStatusTagType(scope.row.status)"
                         size="small"
                         class="status-tag"
                         >
                         {{ scope.row.status }}
                         </el-tag>
+                        <span v-else>--</span>
                     </template>
                     </el-table-column>
-                    <el-table-column prop="operator" label="操作员" width="100" align="center"></el-table-column>
-                    <el-table-column prop="remark" label="备注" width="120" align="center"></el-table-column>
+
+                    <!-- 操作员 -->
+                    <el-table-column prop="operator" label="操作员" width="100" align="center">
+                    <template #default="scope">
+                        <el-input v-if="scope.row.isNew" v-model="scope.row.operator" size="small" />
+                        <span v-else>{{ scope.row.operator }}</span>
+                    </template>
+                    </el-table-column>
+
+                    <!-- 备注 + 确认取消 -->
+                    <el-table-column prop="remark" label="备注" width="120" align="center">
+                    <template #default="scope">
+                        <template v-if="scope.row.isNew">
+                        <el-button size="small" type="success" @click="confirmNewRow(scope.row)">
+                            确认
+                        </el-button>
+                        <el-button size="small" type="danger" @click="cancelNewRow(scope.row.id)">
+                            取消
+                        </el-button>
+                        </template>
+                        <span v-else>{{ scope.row.remark }}</span>
+                    </template>
+                    </el-table-column>
+
+                    <!-- 启用状态 -->
                     <el-table-column prop="switch" label="启用状态" width="100" align="center" fixed="right">
                     <template #default="scope">
                         <el-switch
-                            v-model="scope.row.enabled"
-                            @change="handleSwitchChange(scope.row)"
+                        v-model="scope.row.enabled"
+                        @change="handleSwitchChange(scope.row)"
                         />
                     </template>
                     </el-table-column>
@@ -230,7 +327,7 @@
                         @size-change="handleSizeChange"
                         @current-change="handleCurrentChange"
                     />
-                </div>
+                </div>            
             </div>
         </div>
     </div>
@@ -242,6 +339,8 @@ import { ElMessage } from 'element-plus';
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
 import excelIcon from '@/components/icons/excelIcon.vue';
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 interface data {
     line?: number;
@@ -292,8 +391,7 @@ interface SampleData {
   operator: string
   remark: string
   enabled: boolean
-  overallMean?: number
-  overallRange?: number
+  isNew?: boolean
 }
 
 // 响应式数据
@@ -302,6 +400,13 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const overallMean = ref(0)
 const overallRange = ref(0)
+
+const editingRows = ref<SampleData[]>([])
+
+const tableData = computed(() => [
+  ...editingRows.value,
+  ...sampleData.value
+])
 
 // 计算属性：分页后的数据
 const pagedData = computed(() => {
@@ -362,11 +467,11 @@ const loadData = () => {
       id: `sample-${index + 1}`,
       subgroupId,
       datetime: `${date} ${time}`,
-      value1: parseFloat(values[0].toFixed(2)),
-      value2: parseFloat(values[1].toFixed(2)),
-      value3: parseFloat(values[2].toFixed(2)),
-      value4: parseFloat(values[3].toFixed(2)),
-      value5: parseFloat(values[4].toFixed(2)),
+      value1: parseFloat(values[0]!.toFixed(2)),
+      value2: parseFloat(values[1]!.toFixed(2)),
+      value3: parseFloat(values[2]!.toFixed(2)),
+      value4: parseFloat(values[3]!.toFixed(2)),
+      value5: parseFloat(values[4]!.toFixed(2)),
       mean: parseFloat(mean.toFixed(2)),
       range: parseFloat(range.toFixed(2)),
       status,
@@ -437,6 +542,172 @@ const handleSizeChange = (size: number) => {
 
 const handleCurrentChange = (page: number) => {
   currentPage.value = page
+}
+
+/* ================= 新增数据 ================= */
+
+const addNewRow = () => {
+  editingRows.value.unshift({
+    id: `new-${Date.now()}`,
+    subgroupId: '',
+    datetime: '',
+    value1: null as any,
+    value2: null as any,
+    value3: null as any,
+    value4: null as any,
+    value5: null as any,
+    mean: null as any,
+    range: null as any,
+    status: '正常',
+    operator: '',
+    remark: '',
+    enabled: true,
+    isNew: true
+  })
+}
+
+/* 自动算 X̄ / R */
+const calcNewRow = (row: SampleData) => {
+  const values = [row.value1, row.value2, row.value3, row.value4, row.value5]
+    .filter(v => typeof v === 'number') as number[]
+
+  if (values.length === 5) {
+    row.mean = +(values.reduce((a, b) => a + b, 0) / 5).toFixed(2)
+    row.range = +(Math.max(...values) - Math.min(...values)).toFixed(2)
+  }
+}
+
+const recalcOverall = () => {
+  const means = sampleData.value.map(i => i.mean!).filter(Boolean)
+  const ranges = sampleData.value.map(i => i.range!).filter(Boolean)
+
+  overallMean.value = +(means.reduce((a, b) => a + b, 0) / means.length).toFixed(2)
+  overallRange.value = +(ranges.reduce((a, b) => a + b, 0) / ranges.length).toFixed(2)
+}
+
+
+/* 确认新增 */
+const confirmNewRow = (row: SampleData) => {
+  if (
+    row.value1 == null ||
+    row.value2 == null ||
+    row.value3 == null ||
+    row.value4 == null ||
+    row.value5 == null
+  ) {
+    ElMessage.warning('请填写完整 5 个样本值')
+    return
+  }
+
+  row.status =
+    row.mean > 50.06 || row.mean < 49.98
+      ? '异常'
+      : row.mean > 50.04 || row.mean < 50.0
+      ? '警告'
+      : '正常'
+
+  row.isNew = false
+  sampleData.value.unshift(row)
+  editingRows.value = editingRows.value.filter(r => r.id !== row.id)
+
+  recalcOverall()
+  ElMessage.success('新增成功')
+}
+
+const cancelNewRow = (id: string) => {
+  editingRows.value = editingRows.value.filter(r => r.id !== id)
+}
+
+/* ================= Excel 模板 ================= */
+
+const exportTemplate = () => {
+  const headers = [
+    ['样本组', '时间', '值1', '值2', '值3', '值4', '值5']
+  ]
+  const sheet = XLSX.utils.aoa_to_sheet(headers)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, sheet, '模板')
+
+  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  saveAs(new Blob([buffer]), '测量数据模板.xlsx')
+}
+
+/* ================= Excel 导入 ================= */
+
+const importExcel = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.xlsx,.csv'
+  input.onchange = handleFile
+  input.click()
+}
+
+const handleFile = (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = evt => {
+    const wb = XLSX.read(evt.target?.result, { type: 'binary' })
+    const name = wb.SheetNames[0]
+    if (!name) {
+        ElMessage.error("Excel 中未找到工作表")
+        return
+    }
+    const sheet = wb.Sheets[name]
+    if (!sheet) {
+        ElMessage.error("Excel 中未找到工作表")
+        return
+    }
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet)
+
+    rows.forEach((r, i) => {
+      const values = [r['值1'], r['值2'], r['值3'], r['值4'], r['值5']]
+      const mean = values.reduce((a, b) => a + b, 0) / 5
+      const range = Math.max(...values) - Math.min(...values)
+
+      sampleData.value.push({
+        id: `import-${Date.now()}-${i}`,
+        subgroupId: r['样本组'],
+        datetime: r['时间'],
+        value1: r['值1'],
+        value2: r['值2'],
+        value3: r['值3'],
+        value4: r['值4'],
+        value5: r['值5'],
+        mean: +mean.toFixed(2),
+        range: +range.toFixed(2),
+        status: '正常'
+      } as SampleData)
+    })
+
+    ElMessage.success('导入成功')
+  }
+  reader.readAsBinaryString(file)
+}
+
+/* ================= Excel 导出 ================= */
+
+const exportExcel = () => {
+  const rows = sampleData.value.map(r => ({
+    样本组: r.subgroupId,
+    时间: r.datetime,
+    值1: r.value1,
+    值2: r.value2,
+    值3: r.value3,
+    值4: r.value4,
+    值5: r.value5,
+    均值: r.mean,
+    极差: r.range,
+    状态: r.status
+  }))
+
+  const sheet = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, sheet, '测量数据')
+
+  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  saveAs(new Blob([buffer]), '测量数据表.xlsx')
 }
 
 // 初始化
