@@ -37,5 +37,6 @@ body {
   height: calc(100% - 60px);
   margin: 60px auto;
   position: relative;
+  overflow: hidden;
 }
 </style>
