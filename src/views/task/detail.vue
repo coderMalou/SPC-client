@@ -156,9 +156,9 @@
                     <el-table-column prop="datetime" label="日期时间" width="120" align="center">
                     <template #default="scope">
                         <el-input
-                        v-if="scope.row.isNew"
-                        v-model="scope.row.datetime"
-                        size="small"
+                          v-if="scope.row.isNew"
+                          v-model="formattedTime"
+                          size="small"
                         />
                         <span v-else>{{ scope.row.datetime }}</span>
                     </template>
@@ -341,6 +341,9 @@ import listIcon from '@/components/icons/listIcon.vue';
 import excelIcon from '@/components/icons/excelIcon.vue';
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { useTime } from '@/utils/clock';
+
+const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
 
 interface data {
     line?: number;
@@ -607,6 +610,7 @@ const confirmNewRow = (row: SampleData) => {
       : '正常'
 
   row.isNew = false
+  row.datetime = formattedTime.value
   sampleData.value.unshift(row)
   editingRows.value = editingRows.value.filter(r => r.id !== row.id)
 
@@ -863,6 +867,11 @@ onMounted(() => {
       }
     }
   }
+}
+
+:deep(.el-table td.el-table__cell div) {
+  display: flex !important;
+  justify-content: center !important;
 }
 
 // 数据点样式

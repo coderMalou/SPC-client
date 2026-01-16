@@ -25,7 +25,7 @@
                     <downArrow :class="['arrow-icon', { 'arrow-rotate': !isShowTaskNo }]" />
                 </div>
                 <transition name="tree-collapse">
-                    <div v-show="isShowTaskNo" class="taskNo-container">
+                    <div v-if="isShowTaskNo" class="taskNo-container">
                         <div 
                             v-for="item in filteredTaskNoList" 
                             :key="item.no" 
