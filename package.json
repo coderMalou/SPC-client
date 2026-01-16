@@ -17,6 +17,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "echarts": "^6.0.0",
     "element-plus": "^2.13.1",
     "file-saver": "^2.0.5",
     "lodash": "^4.17.21",
