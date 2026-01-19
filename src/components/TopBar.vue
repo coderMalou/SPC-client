@@ -5,8 +5,8 @@
             <div class="system-name">SPC统计过程控制系统</div>
         </span>
         <nav class="main-menu">
-            <div class="menu-item":class="{active:isShowGraph}" @click="handleGraph">控制图</div>
-            <div class="menu-item" :class="{active:isShowTask}" @click="handleTask">任务管理</div>
+            <div class="menu-item":class="{active:!curTab}" @click="handleGraph">控制图</div>
+            <div class="menu-item" :class="{active:curTab}" @click="handleTask">任务管理</div>
         </nav>
         <span style="display: flex; width: 30%; justify-content: center;">{{ formattedTime }}</span>
         <div style="display: flex; align-items: center; gap:15px; font-weight: bold;">
@@ -24,11 +24,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useTime } from '@/utils/clock';
 
 const router = useRouter()
+const route = useRoute()
 const { formattedTime } = useTime()
 
 const isShowGraph = ref(false)
@@ -38,6 +39,10 @@ const companies = ref([
     {name:'深圳公司2', id: 2},
 ])
 const curCompany = ref('深圳公司1')
+
+const curTab = computed(()=>{
+    return route.name?.toString().includes('task') ? true : false
+})
 
 const handleGraph = () => {
     isShowGraph.value = true
