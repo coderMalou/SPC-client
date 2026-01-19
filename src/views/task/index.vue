@@ -1,6 +1,6 @@
 <template>
     <div class="task-container">
-        <div class="task-total">
+        <div class="task-total" v-if="!isShowDetails">
             <div class="task-number">
                 <div style="
                     display: flex;
@@ -25,7 +25,7 @@
                     <downArrow :class="['arrow-icon', { 'arrow-rotate': !isShowTaskNo }]" />
                 </div>
                 <transition name="tree-collapse">
-                    <div v-show="isShowTaskNo" class="taskNo-container">
+                    <div v-if="isShowTaskNo" class="taskNo-container">
                         <div 
                             v-for="item in filteredTaskNoList" 
                             :key="item.no" 
@@ -50,7 +50,7 @@
             </div>
             <div class="task-list">
                 <div style="padding: 5px 10px; width: 100%; font-size: 21px;font-weight: bold; color: var(--color-dark-text);">任务列表</div>
-                <div style="width: 100%; border: solid 0.5px var(--color-model-bg);color: transparent;height: 0;"></div>
+                <div class="divider"></div>
                 <div class="operate-bar">
                     <div class="operate-btn">
                         <el-button type="primary">
@@ -119,7 +119,7 @@
                             </template>
                         </el-table-column>
                         <el-table-column prop="stime" label="最近启用时间" width="100" align="center"></el-table-column>
-                        <el-table-column prop="ctime" label="创建时间" width="90" align="center"></el-table-column>
+                        <el-table-column prop="ctime" label="创建时间" width="95" align="center"></el-table-column>
                         <el-table-column label="操作" width="270" align="center">
                             <template #default="scope">
                                 <div class="operation-buttons">
@@ -181,6 +181,12 @@
                 </div>
             </div>
         </div>
+        <detail 
+            :is-show-details="isShowDetails"
+            :selected-item="selectedItem"
+            @close="()=>isShowDetails = false"
+            @change="handleStatusChange"
+        />
     </div>
 </template>
 
@@ -188,6 +194,7 @@
 import { ref, computed, onMounted } from 'vue' 
 import * as XLSX from 'xlsx'
 import { ElMessage } from 'element-plus'
+import detail from './detail.vue';
 
 import searchScope from '@/components/icons/searchScope.vue';
 import downArrow from '@/components/icons/downArrow.vue';
@@ -206,6 +213,9 @@ const productSearch = ref('')
 // 分页相关
 const currentPage = ref(1)
 const pageSize = ref(10)
+
+// 详情显示
+const isShowDetails = ref(false)
 
 // 原始数据
 const taskNoList = ref([
@@ -231,7 +241,20 @@ const statusList = ref([
 ])
 
 // 模拟的表格数据
-const rawTableData = ref([
+interface data {
+    line?: number;
+    ticket?: string;
+    pid?: string;
+    pname?: string;
+    tid?: string;
+    tname?: string;
+    devid?: string;
+    status?: string;
+    stime?: string;
+    ctime?: string;
+}
+
+const rawTableData = ref<data[]>([
     {line:1, ticket:'WO20251013001', pid:'123456', pname:'铆接总成', tid:'WO20251013001-001', tname:'总成检外观', devid:'00001', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
     {line:2, ticket:'WO20251013002', pid:'123457', pname:'铆接总成', tid:'WO20251013002-001', tname:'总成检外观', devid:'00002', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
     {line:3, ticket:'WO20251013001', pid:'123458', pname:'铆接总成', tid:'WO20251013001-002', tname:'总成检外观', devid:'00001', status:'1', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
@@ -244,10 +267,12 @@ const rawTableData = ref([
     {line:10, ticket:'WO20251013003', pid:'123465', pname:'法兰盘', tid:'WO20251013003-002', tname:'法兰加工', devid:'00006', status:'0', stime:'2025-10-09 13:45:00', ctime:'2025-10-05 14:30:00'},
 ])
 
+// 选中内容
 const currentNo = ref(taskNoList.value[0]?.no || '')
 const currentType = ref(0)
 const currentStatus = ref(0)
 const selectedData = ref([])
+const selectedItem = ref<data>({})
 
 // 计算属性：过滤左侧工单列表
 const filteredTaskNoList = computed(() => {
@@ -285,8 +310,8 @@ const filteredTableData = computed(() => {
         // 按产品编码或名称搜索
         if (productSearch.value) {
             const search = productSearch.value.toLowerCase()
-            if (!item.pid.toLowerCase().includes(search) && 
-                !item.pname.toLowerCase().includes(search)) {
+            if (!item.pid?.toLowerCase().includes(search) && 
+                !item.pname?.toLowerCase().includes(search)) {
                 return false
             }
         }
@@ -338,6 +363,8 @@ const handleEdit = (row: any) => {
     console.log('编辑行:', row)
 }
 const handleDetail = (row: any) => {
+    selectedItem.value = row
+    isShowDetails.value = true
     console.log('详情:', row)
 }
 const handleChart = (row: any) => {
@@ -373,6 +400,7 @@ const handleCurrentChange = (page: number) => {
     currentPage.value = page
 }
 
+// 导出
 const handleExport = () => {
     if (selectedData.value.length === 0) {
         ElMessage.warning('请先选择要导出的数据')
@@ -437,6 +465,7 @@ const handleExport = () => {
     }
 }
 
+// 复制
 const handleCopy = async () => {
     if (selectedData.value.length === 0) {
         ElMessage.warning('请先选择要复制的数据')
@@ -484,6 +513,18 @@ const handleCopy = async () => {
     }
 }
 
+const handleStatusChange = () => {
+    const ind = rawTableData.value.findIndex((item:any)=>{
+        return item.ticket === selectedItem.value.ticket && item.pid === selectedItem.value.pid
+    })
+    const curStatus = rawTableData.value[ind]?.status
+    rawTableData.value.map((item:data, index)=>{
+        if (index === ind) {
+            item.status = curStatus === '0' ? '1' : '0'
+        }
+    })
+}
+
 // 初始化
 onMounted(() => {
     console.log('组件已加载')
@@ -497,13 +538,21 @@ onMounted(() => {
     padding: 20px 60px;
     background-color: var(--color-model-bg);
     overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
 }
 
 .task-total {
+    position: relative;
     width: 100%;
     height: 100%;
     display: flex;
     gap: 5px;
+    transition: transform 0.3s ease;    
+}
+
+.task-total.hide {
+    transform: translateX(-120%);
 }
 
 .task-number {
@@ -679,6 +728,13 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     background: white;
+}
+
+.divider {
+    width: 100%; 
+    border: solid 0.5px var(--color-model-bg);
+    color: transparent;
+    height: 0;
 }
 
 .operate-bar {
