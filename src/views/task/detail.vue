@@ -137,12 +137,12 @@
             <div class="control-chart-data">
                 <el-table
                     :data="tableData"
-                    style="width: 100%;"
+                    style="width: 100%; table-layout: auto;"
                     row-key="id"
                     :row-class-name="getRowClass"
                     :header-row-class-name="'header-row'"
                 >
-                    <el-table-column prop="subgroupId" label="样本组" width="100" align="center">
+                    <el-table-column prop="subgroupId" label="样本组" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -153,7 +153,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="datetime" label="日期时间" width="120" align="center">
+                    <el-table-column prop="datetime" label="日期时间" align="center">
                     <template #default="scope">
                         <el-input
                           v-if="scope.row.isNew"
@@ -165,7 +165,7 @@
                     </el-table-column>
 
                     <!-- 五个样本值 -->
-                    <el-table-column prop="value1" label="值1" width="85" align="center">
+                    <el-table-column prop="value1" label="值1" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -179,7 +179,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value2" label="值2" width="85" align="center">
+                    <el-table-column prop="value2" label="值2" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -193,7 +193,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value3" label="值3" width="85" align="center">
+                    <el-table-column prop="value3" label="值3" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -207,7 +207,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value4" label="值4" width="85" align="center">
+                    <el-table-column prop="value4" label="值4" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -221,7 +221,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value5" label="值5" width="85" align="center">
+                    <el-table-column prop="value5" label="值5" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -236,7 +236,7 @@
                     </el-table-column>
 
                     <!-- 均值 -->
-                    <el-table-column prop="mean" label="均值" width="85" align="center">
+                    <el-table-column prop="mean" label="均值" align="center">
                     <template #default="scope">
                         <span v-if="!scope.row.isNew" :class="getMeanStatusClass(scope.row.mean)">
                         {{ scope.row.mean }}
@@ -246,23 +246,23 @@
                     </el-table-column>
 
                     <!-- 极差 -->
-                    <el-table-column prop="range" label="极差" width="85" align="center">
+                    <el-table-column prop="range" label="极差" align="center">
                     <template #default="scope">
                         {{ scope.row.isNew ? (scope.row.range ?? '--') : scope.row.range }}
                     </template>
                     </el-table-column>
 
                     <!-- 整体均值 / 极差（原逻辑） -->
-                    <el-table-column prop="overallMean" label="整体均值" width="85" align="center">
+                    <el-table-column prop="overallMean" label="整体均值" align="center">
                     <template #default>{{ overallMean }}</template>
                     </el-table-column>
 
-                    <el-table-column prop="overallRange" label="整体极差" width="85" align="center">
+                    <el-table-column prop="overallRange" label="整体极差" align="center">
                     <template #default>{{ overallRange }}</template>
                     </el-table-column>
 
                     <!-- 状态 -->
-                    <el-table-column prop="status" label="状态" width="100" align="center">
+                    <el-table-column prop="status" label="状态" align="center">
                     <template #default="scope">
                         <el-tag
                         v-if="!scope.row.isNew"
@@ -277,7 +277,7 @@
                     </el-table-column>
 
                     <!-- 操作员 -->
-                    <el-table-column prop="operator" label="操作员" width="100" align="center">
+                    <el-table-column prop="operator" label="操作员" align="center">
                     <template #default="scope">
                         <el-input v-if="scope.row.isNew" v-model="scope.row.operator" size="small" />
                         <span v-else>{{ scope.row.operator }}</span>
@@ -300,7 +300,7 @@
                     </el-table-column>
 
                     <!-- 启用状态 -->
-                    <el-table-column prop="switch" label="启用状态" width="100" align="center" fixed="right">
+                    <el-table-column prop="switch" label="启用状态" align="center" fixed="right">
                     <template #default="scope">
                         <el-switch
                         v-model="scope.row.enabled"
@@ -817,20 +817,20 @@ onMounted(() => {
 }
 
 .control-chart-data {
-  width: calc(100vw - 120px);
+  width: 100%;
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
 }
 
 .table-container {
-  width: calc(100vw - 120px);
-  overflow-x: auto;
+  width: 100%;
+  overflow-x: hidden;
   border: 1px solid #ebeef5;
   border-radius: 4px;
   
   :deep(.el-table) {
-    max-width: calc(100vw - 120px);
+    width: 100%;
     
     .header-row {
       background-color: #f5f7fa;

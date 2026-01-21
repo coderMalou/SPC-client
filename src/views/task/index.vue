@@ -100,26 +100,26 @@
                     <el-table
                         :data="pagedTableData"
                         row-key="tid"
-                        style="width: 100%; height: 100%"
+                        style="width: 100%; table-layout: auto;"
                         @selection-change="handleMultiSelect"
                     >
-                        <el-table-column type="selection" :selectable="()=>true" width="30"></el-table-column>
-                        <el-table-column prop="line" label="行号" width="55" align="center"></el-table-column>
-                        <el-table-column prop="ticket" label="工单号" width="100" align="center"></el-table-column>
-                        <el-table-column prop="pid" label="产品编码" width="80" align="center"></el-table-column>
-                        <el-table-column prop="pname" label="产品名称" width="80" align="center"></el-table-column>
-                        <el-table-column prop="tid" label="工作任务号" width="100" align="center"></el-table-column>
-                        <el-table-column prop="tname" label="工序作业名称" width="100" align="center"></el-table-column>
-                        <el-table-column prop="devid" label="设备编号" width="80" align="center"></el-table-column>
-                        <el-table-column prop="status" label="状态" width="70" align="center">
+                        <el-table-column type="selection" :selectable="()=>true"></el-table-column>
+                        <el-table-column prop="line" label="行号" align="center"></el-table-column>
+                        <el-table-column prop="ticket" label="工单号" align="center"></el-table-column>
+                        <el-table-column prop="pid" label="产品编码" align="center"></el-table-column>
+                        <el-table-column prop="pname" label="产品名称" align="center"></el-table-column>
+                        <el-table-column prop="tid" label="工作任务号" align="center"></el-table-column>
+                        <el-table-column prop="tname" label="工序作业名称" align="center"></el-table-column>
+                        <el-table-column prop="devid" label="设备编号" align="center"></el-table-column>
+                        <el-table-column prop="status" label="状态"  align="center">
                             <template #default="scope">
                                 <span :class="getStatusClass(scope.row.status)">
                                     {{ getStatusText(scope.row.status) }}
                                 </span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="stime" label="最近启用时间" width="100" align="center"></el-table-column>
-                        <el-table-column prop="ctime" label="创建时间" width="95" align="center"></el-table-column>
+                        <el-table-column prop="stime" label="最近启用时间" align="center"></el-table-column>
+                        <el-table-column prop="ctime" label="创建时间" align="center"></el-table-column>
                         <el-table-column label="操作" width="270" align="center">
                             <template #default="scope">
                                 <div class="operation-buttons">
@@ -195,6 +195,8 @@ import { ref, computed, onMounted } from 'vue'
 import * as XLSX from 'xlsx'
 import { ElMessage } from 'element-plus'
 import detail from './detail.vue';
+import { useRouter } from 'vue-router';
+const router = useRouter()
 
 import searchScope from '@/components/icons/searchScope.vue';
 import downArrow from '@/components/icons/downArrow.vue';
@@ -368,6 +370,7 @@ const handleDetail = (row: any) => {
     console.log('详情:', row)
 }
 const handleChart = (row: any) => {
+    router.push('/graph')
     console.log('控制图:', row)
 }
 const handleDelete = (row: any) => {
@@ -785,8 +788,8 @@ onMounted(() => {
 
 .table-container {
     flex: 1;
-    width: calc(100vw - 375px);
-    overflow-x: auto;
+    width: 100%;
+    overflow-x: hidden;
     overflow-y: hidden; 
     border: 1px solid #ebeef5;
     border-radius: 4px;
