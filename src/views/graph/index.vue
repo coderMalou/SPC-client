@@ -166,7 +166,7 @@
           <p :class="['status-text', anomalyInfo.status]">
             {{ anomalyInfo.message }}
           </p>
-          <el-tooltip effect="dark" placement="top">
+          <el-tooltip effect="light" placement="top-end">
             <template #content>
               <div class="rule-tooltip">
                 <h4>判异准则:</h4>
@@ -241,17 +241,17 @@
         <el-button type="text" @click="viewAllData">查看全部数据 →</el-button>
       </div>
       <div class="table-content">
-        <el-table :data="recentData" style="width: 100%">
-          <el-table-column prop="subgroupNo" label="子组编号" width="120" />
-          <el-table-column prop="sample1" label="样本1" width="100" />
-          <el-table-column prop="sample2" label="样本2" width="100" />
-          <el-table-column prop="sample3" label="样本3" width="100" />
-          <el-table-column prop="sample4" label="样本4" width="100" />
-          <el-table-column prop="sample5" label="样本5" width="100" />
-          <el-table-column prop="mean" label="均值(X̄)" width="100" />
-          <el-table-column prop="stdDev" label="标准差(σ)" width="100" />
-          <el-table-column prop="range" label="极差(R)" width="100" />
-          <el-table-column prop="inspectionTime" label="检测时间" width="180" />
+        <el-table :data="recentData" style="width: 100%; table-layout: auto;">
+          <el-table-column prop="subgroupNo" label="子组编号"/>
+          <el-table-column prop="sample1" label="样本1"/>
+          <el-table-column prop="sample2" label="样本2"/>
+          <el-table-column prop="sample3" label="样本3"/>
+          <el-table-column prop="sample4" label="样本4"/>
+          <el-table-column prop="sample5" label="样本5"/>
+          <el-table-column prop="mean" label="均值(X̄)"/>
+          <el-table-column prop="stdDev" label="标准差(σ)"/>
+          <el-table-column prop="range" label="极差(R)"/>
+          <el-table-column prop="inspectionTime" label="检测时间"/>
         </el-table>
       </div>
     </div>
@@ -624,7 +624,8 @@ const initCharts = (): void => {
           coord: [index, mean],
           value: mean,
           symbol: 'pin',
-          symbolSize: 20,
+          symbolSize: 0 <= mean && mean < 10 ? 45 :
+                        10 <= mean && mean < 100 ? 60 : 75,
           itemStyle: { color: '#ff4d4f' }
         }
       }
@@ -1222,6 +1223,7 @@ window.addEventListener('resize', handleResize)
 
 .table-content {
   padding: 16px;
+  width: 100%;
 }
 
 .rule-tooltip {
