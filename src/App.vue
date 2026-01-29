@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import TopBar from './components/TopBar.vue';
+import { curUserData } from './stores/user';
+const {getUser} = curUserData()
+
+
 </script>
 
 <template>
   <div class="app-container">
-    <TopBar />
-    <div class="main-content">
+    <TopBar v-if="getUser() !== ''"/>
+    <div class="main-content" :class="{login: getUser() === ''}">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
@@ -38,5 +42,10 @@ body {
   margin: 60px auto;
   position: relative;
   overflow: hidden;
+}
+
+.main-content.login {
+  height: 100vh !important;
+  margin: 0;
 }
 </style>
