@@ -70,12 +70,14 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { curUserData } from '@/stores/user'
+import { curUserData, userStore } from '@/stores/user'
+import storage from '@/utils/storage'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
 // Pinia store
 const { setUser, setCompany } = curUserData()
+const user = userStore()
 
 // 设置公司信息
 setCompany('深圳公司1')
@@ -176,6 +178,10 @@ const handleLogin = async () => {
     if (response.success) {
       // 设置用户信息到Pinia store
       setUser(loginForm.username)
+      storage.set('user',loginForm.username, 'session')
+      user.login({
+        username:loginForm.username
+      })
       
       ElMessage.success('登录成功')
       

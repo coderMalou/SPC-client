@@ -287,7 +287,23 @@
                     <!-- 备注 + 确认取消 -->
                     <el-table-column prop="remark" label="备注" width="120" align="center">
                     <template #default="scope">
-                        <template v-if="scope.row.isNew">
+                        <!-- <template v-if="scope.row.isNew">
+                        <el-button size="small" type="success" @click="confirmNewRow(scope.row)">
+                            确认
+                        </el-button>
+                        <el-button size="small" type="danger" @click="cancelNewRow(scope.row.id)">
+                            取消
+                        </el-button>
+                        </template> -->
+                        <el-input v-if="scope.row.isNew" v-model="scope.row.operator" size="small" />
+                        <span v-else>{{ scope.row.remark }}</span>
+                    </template>
+                    </el-table-column>
+
+                    <!-- 启用状态 -->
+                    <el-table-column prop="switch" label="启用状态" align="center" fixed="right" width="120">
+                    <template #default="scope">
+                      <template v-if="scope.row.isNew">
                         <el-button size="small" type="success" @click="confirmNewRow(scope.row)">
                             确认
                         </el-button>
@@ -295,14 +311,8 @@
                             取消
                         </el-button>
                         </template>
-                        <span v-else>{{ scope.row.remark }}</span>
-                    </template>
-                    </el-table-column>
-
-                    <!-- 启用状态 -->
-                    <el-table-column prop="switch" label="启用状态" align="center" fixed="right">
-                    <template #default="scope">
                         <el-switch
+                        v-else
                         v-model="scope.row.enabled"
                         @change="handleSwitchChange(scope.row)"
                         />
@@ -342,6 +352,7 @@ import excelIcon from '@/components/icons/excelIcon.vue';
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useTime } from '@/utils/clock';
+import { formatTimeStamp } from '@/utils/functions';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
 
@@ -626,7 +637,7 @@ const cancelNewRow = (id: string) => {
 
 const exportTemplate = () => {
   const headers = [
-    ['样本组', '时间', '值1', '值2', '值3', '值4', '值5']
+    ['样本组', '时间', '值1', '值2', '值3', '值4', '值5', '操作员', '备注']
   ]
   const sheet = XLSX.utils.aoa_to_sheet(headers)
   const wb = XLSX.utils.book_new()
@@ -652,7 +663,7 @@ const handleFile = (e: Event) => {
 
   const reader = new FileReader()
   reader.onload = evt => {
-    const wb = XLSX.read(evt.target?.result, { type: 'binary' })
+    const wb = XLSX.read(evt.target?.result, { type: 'binary', cellDates: true, cellNF: false })
     const name = wb.SheetNames[0]
     if (!name) {
         ElMessage.error("Excel 中未找到工作表")
@@ -669,11 +680,20 @@ const handleFile = (e: Event) => {
       const values = [r['值1'], r['值2'], r['值3'], r['值4'], r['值5']]
       const mean = values.reduce((a, b) => a + b, 0) / 5
       const range = Math.max(...values) - Math.min(...values)
+      let status: '正常' | '警告' | '异常' = '正常'
+      if (mean > 50.06 || mean < 49.98) {
+        status = '异常'
+      } else if (mean > 50.04 || mean < 50.00) {
+        status = '警告'
+      }
+      
+      const remark = status === '正常' ? '' : '需关注'
 
-      sampleData.value.push({
+      sampleData.value = [
+        {
         id: `import-${Date.now()}-${i}`,
         subgroupId: r['样本组'],
-        datetime: r['时间'],
+        datetime: formatTimeStamp(r['时间']),
         value1: r['值1'],
         value2: r['值2'],
         value3: r['值3'],
@@ -681,8 +701,12 @@ const handleFile = (e: Event) => {
         value5: r['值5'],
         mean: +mean.toFixed(2),
         range: +range.toFixed(2),
-        status: '正常'
-      } as SampleData)
+        status: r['状态'] ?? status,
+        operator: r['操作员'],
+        remark: r['备注'] ?? remark
+      } as SampleData,
+      ...sampleData.value
+      ]
     })
 
     ElMessage.success('导入成功')
@@ -703,7 +727,9 @@ const exportExcel = () => {
     值5: r.value5,
     均值: r.mean,
     极差: r.range,
-    状态: r.status
+    状态: r.status,
+    操作员: r.operator,
+    备注: r.remark
   }))
 
   const sheet = XLSX.utils.json_to_sheet(rows)

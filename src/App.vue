@@ -1,16 +1,54 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import TopBar from './components/TopBar.vue';
-import { curUserData } from './stores/user';
-const {getUser} = curUserData()
+import storage from './utils/storage';
+import { curUserData, userStore, type UserInfo } from './stores/user';
+const userData = curUserData();
+const user = userStore()
+const userName = ref(userData.getUser())
+const isLoggedIn = computed(()=>{
+  return userName.value !== ''
+})
+
+const handleStorageChange = (event: StorageEvent) => {
+  if (event.key === 'user_info' && event.storageArea === sessionStorage) {
+    if (event.newValue) {
+      const newUser = JSON.parse(event.newValue);
+      if (newUser) {
+        user.login(newUser);
+      } else {
+        user.logout();
+      }
+    } else {
+      user.logout();
+    }
+  }
+};
+
+// 组件挂载时添加事件监听
+onMounted(() => {
+  window.addEventListener('storage', handleStorageChange);
+  
+  // 页面加载时检查登录状态
+  const savedUser = storage.get('user_info', 'session');
+  if (savedUser) {
+    user.login(savedUser as UserInfo);
+  }
+});
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  window.removeEventListener('storage', handleStorageChange);
+});
 
 
 </script>
 
 <template>
   <div class="app-container">
-    <TopBar v-if="getUser() !== ''"/>
-    <div class="main-content" :class="{login: getUser() === ''}">
+    <TopBar v-if="user.isLoggedIn"/>
+    <div class="main-content">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
@@ -34,12 +72,13 @@ body {
   width: 100%;
   height: 100vh;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content {
   width: 100%;
-  height: calc(100% - 60px);
-  margin: 60px auto;
+  height: calc(100%);
   position: relative;
   overflow: hidden;
 }
