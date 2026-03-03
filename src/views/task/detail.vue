@@ -19,39 +19,39 @@
             <div class="stat-card content">
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工作任务号</span>
-                    <el-input disabled v-model="selectedItem.tid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.tid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工单号</span>
-                    <el-input disabled v-model="selectedItem.ticket"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.ticket"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">行号</span>
-                    <el-input disabled v-model="selectedItem.line"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.line"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">产品编码</span>
-                    <el-input disabled v-model="selectedItem.pid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">产品名称</span>
-                    <el-input disabled v-model="selectedItem.pname"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pname"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">规格/型号</span>
-                    <el-input disabled v-model="spec"></el-input>
+                    <el-input :disabled="!isEdit" v-model="spec"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">计量单位</span>
-                    <el-input disabled v-model="unit"></el-input>
+                    <el-input :disabled="!isEdit" v-model="unit"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工艺路线名称</span>
-                    <el-input disabled v-model="technic"></el-input>
+                    <el-input :disabled="!isEdit" v-model="technic"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">创建时间</span>
-                    <el-input disabled v-model="selectedItem.ctime"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.ctime"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text); display: inline-flex;gap:5px;">任务状态
@@ -60,6 +60,7 @@
                     </span>
                     <el-switch
                         v-model="curStatus"
+                        :disabled="!isEdit"
                         @change="$emit('change')"
                     />
                 </div>
@@ -72,43 +73,43 @@
             <div class="stat-card content">
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工序序号</span>
-                    <el-input disabled v-model="techList.techid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.techid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工序作业名称</span>
-                    <el-input disabled v-model="techList.techname"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.techname"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">质量特性</span>
-                    <el-input disabled v-model="techList.ch"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.ch"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">目标标准值</span>
-                    <el-input disabled v-model="techList.standard"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.standard"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">USL</span>
-                    <el-input disabled v-model="techList.usl"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.usl"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">LSL</span>
-                    <el-input disabled v-model="techList.lsl"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.lsl"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">组内样本量</span>
-                    <el-input disabled v-model="techList.set"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.set"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">总体样本量</span>
-                    <el-input disabled v-model="techList.total"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.total"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">作业设备编码</span>
-                    <el-input disabled v-model="selectedItem.devid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">仪器/治具编码</span>
-                    <el-input disabled v-model="selectedItem.devid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div>
             </div>
         </div>
@@ -314,6 +315,7 @@
                         <el-switch
                         v-else
                         v-model="scope.row.enabled"
+                        :disabled="!isEdit"
                         @change="handleSwitchChange(scope.row)"
                         />
                     </template>
@@ -372,6 +374,7 @@ interface data {
 const prop = defineProps<{
     isShowDetails: boolean;
     selectedItem: data;
+    isEdit: boolean;
 }>()
 
 defineEmits(['close','change'])
@@ -429,7 +432,7 @@ const pagedData = computed(() => {
   return sampleData.value.slice(start, end)
 })
 
-const curStatus = computed(() => {
+const curStatus = ref(() => {
     return prop.selectedItem.status === '0'
 })
 

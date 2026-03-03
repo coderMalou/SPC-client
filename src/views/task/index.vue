@@ -42,7 +42,11 @@
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
                                 <div class="status-badge badge-done" v-if="item.status === 1">已关闭</div>
                                 <div class="status-badge status-done" v-else>已启用</div>
-                                <powerOff @click="()=>item.status = item.status ===  1 ? 0 : 1" />
+                                <powerOff @click="()=>{
+                                    isShowDialog = true
+                                    currentTicket = item
+                                }" />
+                                <!-- <powerOff @click="()=>item.status = item.status ===  1 ? 0 : 1" /> -->
                             </div>
                         </div>
                     </div>
@@ -181,9 +185,26 @@
                 </div>
             </div>
         </div>
+        <el-dialog
+          v-model="isShowDialog"
+          title="提示"
+          width="500"
+        >
+            <span>是否{{ currentTicket.status === 1 ? "开启" : "关闭" }}当前工单:&nbsp;{{ currentNo }}?</span>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="isShowDialog = false">取消</el-button>
+                    <el-button type="primary" @click="()=>{
+                        currentTicket.status = currentTicket.status ===  1 ? 0 : 1
+                        isShowDialog = false
+                    }">确认</el-button>
+                </div>
+            </template>
+        </el-dialog>
         <detail 
             :is-show-details="isShowDetails"
             :selected-item="selectedItem"
+            :is-edit="isEdit"
             @close="()=>isShowDetails = false"
             @change="handleStatusChange"
         />
@@ -218,6 +239,8 @@ const pageSize = ref(10)
 
 // 详情显示
 const isShowDetails = ref(false)
+const isEdit = ref(false)
+const isShowDialog = ref(false)
 
 // 原始数据
 const taskNoList = ref([
@@ -270,6 +293,7 @@ const rawTableData = ref<data[]>([
 ])
 
 // 选中内容
+const currentTicket = ref<any>()
 const currentNo = ref(taskNoList.value[0]?.no || '')
 const currentType = ref(0)
 const currentStatus = ref(0)
@@ -362,11 +386,15 @@ const handleMultiSelect = (val:any) => {
 }
 
 const handleEdit = (row: any) => {
+    selectedItem.value = row
+    isShowDetails.value = true
+    isEdit.value = true
     console.log('编辑行:', row)
 }
 const handleDetail = (row: any) => {
     selectedItem.value = row
     isShowDetails.value = true
+    isEdit.value = false
     console.log('详情:', row)
 }
 const handleChart = (row: any) => {
