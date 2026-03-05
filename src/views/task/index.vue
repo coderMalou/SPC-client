@@ -35,7 +35,7 @@
                             <div 
                                 class="taskNo" 
                                 :class="{active: currentNo === item.no}" 
-                                @click="()=>handleTaskNoClick(item.no)"
+                                @click="()=>handleTaskNoClick(item)"
                             >
                                 {{ item.no }}
                             </div>
@@ -57,14 +57,14 @@
                 <div class="divider"></div>
                 <div class="operate-bar">
                     <div class="operate-btn">
-                        <el-button type="primary">
+                        <!-- <el-button type="primary">
                             <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 30px;">添加</span>
                         </el-button>
                         <el-button type="primary">
                             <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 50px;">批量添加</span>
-                        </el-button>
+                        </el-button> -->
                         <el-button type="success" plain @click="handleExport">
                             <el-icon><exportIcon /></el-icon>
                             <span style="min-width: 30px;">导出</span>
@@ -136,6 +136,7 @@
                                         详情
                                     </el-button>
                                     <el-button 
+                                        v-if="currentTicket.status !== 1"
                                         type="warning" 
                                         size="small" 
                                         class="btn-edit"
@@ -152,6 +153,7 @@
                                         控制图
                                     </el-button>
                                     <el-button 
+                                        v-if="currentTicket.status !== 1"
                                         type="warning" 
                                         size="small" 
                                         class="btn-delete"
@@ -293,7 +295,7 @@ const rawTableData = ref<data[]>([
 ])
 
 // 选中内容
-const currentTicket = ref<any>()
+const currentTicket = ref<any>(taskNoList.value[0])
 const currentNo = ref(taskNoList.value[0]?.no || '')
 const currentType = ref(0)
 const currentStatus = ref(0)
@@ -377,8 +379,9 @@ const toggleTaskNoList = () => {
     isShowTaskNo.value = !isShowTaskNo.value
 }
 
-const handleTaskNoClick = (no: string) => {
-    currentNo.value = no
+const handleTaskNoClick = (item: any) => {
+    currentNo.value = item.no
+    currentTicket.value = item
 }
 
 const handleMultiSelect = (val:any) => {
@@ -779,7 +782,6 @@ onMounted(() => {
 .operate-btn {
     width: 380px;
     display: flex;
-    justify-content: space-between;
     padding: 8px 0;
     font-size: 14px;
     border-radius: 4px;
