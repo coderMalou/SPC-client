@@ -107,49 +107,47 @@
 
     <div class="divider"></div>
 
-    <!-- Xbar控制图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>Xbar控制图 (均值图)</h3>
+    <!-- 组合图表：Xbar控制图和X-R控制图 -->
+    <div class="info-card chart-row">
+      <div class="chart-item">
+        <div class="header">
+          <h3>Xbar控制图 (均值图)</h3>
+        </div>
+        <div class="chart-content">
+          <div ref="xbarChart" class="chart-container"></div>
+        </div>
       </div>
-      <div class="chart-content">
-        <div ref="xbarChart" class="chart-container"></div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- X-R控制图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>X-R控制图 (极差图)</h3>
-      </div>
-      <div class="chart-content">
-        <div ref="xrChart" class="chart-container"></div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- S控制图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>S控制图 (标准差图)</h3>
-      </div>
-      <div class="chart-content">
-        <div ref="sChart" class="chart-container"></div>
+      <div class="divider-vertical"></div>
+      <div class="chart-item">
+        <div class="header">
+          <h3>X-R控制图 (极差图)</h3>
+        </div>
+        <div class="chart-content">
+          <div ref="xrChart" class="chart-container"></div>
+        </div>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- 样本与均值偏离表 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>样本与均值偏离表</h3>
+    <!-- 组合图表：S控制图和样本均值偏离图表 -->
+    <div class="info-card chart-row">
+      <div class="chart-item">
+        <div class="header">
+          <h3>S控制图 (标准差图)</h3>
+        </div>
+        <div class="chart-content">
+          <div ref="sChart" class="chart-container"></div>
+        </div>
       </div>
-      <div class="chart-content">
-        <div ref="deviationChart" class="chart-container"></div>
+      <div class="divider-vertical"></div>
+      <div class="chart-item">
+        <div class="header">
+          <h3>样本与均值偏离表</h3>
+        </div>
+        <div class="chart-content">
+          <div ref="deviationChart" class="chart-container"></div>
+        </div>
       </div>
     </div>
 
@@ -159,13 +157,14 @@
     <div class="info-card">
       <div class="header">
         <h3>异常判断结果</h3>
-        <span class="last-check">最近检查: {{ anomalyInfo.lastCheckTime }}</span>
       </div>
       <div class="content">
-        <div class="anomaly-status">
+        
           <p :class="['status-text', anomalyInfo.status]">
             {{ anomalyInfo.message }}
           </p>
+        <div class="anomaly-status">
+          <span class="last-check">最近检查: {{ anomalyInfo.lastCheckTime }}</span>
           <el-tooltip effect="light" placement="top-end">
             <template #content>
               <div class="rule-tooltip">
@@ -179,60 +178,62 @@
             <span class="rule-desc">{{ anomalyInfo.enabledRule }}</span>
           </el-tooltip>
         </div>
+        
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- 过程能力直方图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>过程能力直方图</h3>
+    <!-- 组合图表：过程能力直方图和过程能力指标 -->
+    <div class="info-card chart-row">
+      <div class="metric-item-wrapper">
+        <div class="header">
+          <h3>过程能力指标</h3>
+        </div>
+        <div class="metric-content">
+          <div class="metric-item">
+            <span class="metric-label">Cp</span>
+            <span class="metric-value">{{ capabilityMetrics.cp }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Cpk</span>
+            <span class="metric-value">{{ capabilityMetrics.cpk }}</span>
+            <span class="metric-level" :class="getCapabilityLevel(capabilityMetrics.cpk)">
+              {{ getCapabilityLevelText(capabilityMetrics.cpk) }}
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Pp</span>
+            <span class="metric-value">{{ capabilityMetrics.pp }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Ppk</span>
+            <span class="metric-value">{{ capabilityMetrics.ppk }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">不良率(PPM)</span>
+            <span class="metric-value">{{ capabilityMetrics.defectRate }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">西格玛水平</span>
+            <span class="metric-value">{{ capabilityMetrics.sigmaLevel }}</span>
+          </div>
+        </div>
       </div>
-      <div class="chart-content">
-        <div ref="histogramChart" class="chart-container"></div>
+      <div class="divider-vertical"></div>
+      <div class="chart-item">
+        <div class="header">
+          <h3>过程能力直方图</h3>
+        </div>
+        <div class="chart-content">
+          <div ref="histogramChart" class="chart-container"></div>
+        </div>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- 过程能力指标 -->
-    <div class="stat-card">
-      <div class="header">
-        <h3>过程能力指标</h3>
-      </div>
-      <div class="content">
-        <div class="metric-item">
-          <span class="metric-label">Cp</span>
-          <span class="metric-value">{{ capabilityMetrics.cp }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Cpk</span>
-          <span class="metric-value">{{ capabilityMetrics.cpk }}</span>
-          <span class="metric-level" :class="getCapabilityLevel(capabilityMetrics.cpk)">
-            {{ getCapabilityLevelText(capabilityMetrics.cpk) }}
-          </span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Pp</span>
-          <span class="metric-value">{{ capabilityMetrics.pp }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Ppk</span>
-          <span class="metric-value">{{ capabilityMetrics.ppk }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">不良率(PPM)</span>
-          <span class="metric-value">{{ capabilityMetrics.defectRate }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">西格玛水平</span>
-          <span class="metric-value">{{ capabilityMetrics.sigmaLevel }}</span>
-        </div>
-      </div>
-    </div>
 
-    <div class="divider"></div>
 
     <!-- 最近数据点表格 -->
     <div class="info-card">
@@ -264,6 +265,9 @@ import * as echarts from 'echarts'
 import type { EChartsOption, SeriesOption } from 'echarts'
 import { ElMessage, ElSelect, ElOption, ElButton, ElTag, ElTooltip, ElTable, ElTableColumn } from 'element-plus'
 import html2canvas from 'html2canvas'
+
+import { useRouter } from 'vue-router';
+const router = useRouter()
 
 // 筛选条件接口
 interface Filter {
@@ -571,7 +575,8 @@ const refreshData = (): void => {
 
 const viewAllData = (): void => {
   // 查看全部数据逻辑
-  ElMessage.info('跳转至任务详情页面')
+  // ElMessage.info('跳转至任务详情页面')
+  router.push('/task/detail')
 }
 
 // 计算控制限
@@ -988,11 +993,11 @@ const generateMockData = (): void => {
   
   return {
     subgroupNo: d.subgroupNo,
-    sample1: formatNumber(d.samples[0], PRECISION_CONFIG.SAMPLE),
-    sample2: formatNumber(d.samples[1], PRECISION_CONFIG.SAMPLE),
-    sample3: formatNumber(d.samples[2], PRECISION_CONFIG.SAMPLE),
-    sample4: formatNumber(d.samples[3], PRECISION_CONFIG.SAMPLE),
-    sample5: formatNumber(d.samples[4], PRECISION_CONFIG.SAMPLE),
+    sample1: formatNumber(d.samples[0] as number, PRECISION_CONFIG.SAMPLE),
+    sample2: formatNumber(d.samples[1] as number, PRECISION_CONFIG.SAMPLE),
+    sample3: formatNumber(d.samples[2] as number, PRECISION_CONFIG.SAMPLE),
+    sample4: formatNumber(d.samples[3] as number, PRECISION_CONFIG.SAMPLE),
+    sample5: formatNumber(d.samples[4] as number, PRECISION_CONFIG.SAMPLE),
     mean: formatNumber(d.mean, PRECISION_CONFIG.MEAN),
     stdDev: formatNumber(d.stdDev, PRECISION_CONFIG.STD_DEV),
     range: formatNumber(d.range, PRECISION_CONFIG.RANGE),
@@ -1098,6 +1103,15 @@ window.addEventListener('resize', handleResize)
     flex-direction: row;
     flex-wrap: wrap;
     gap: 16px;
+
+    .status-text {
+    font-size: 16px;
+    font-weight: 500;
+    
+    &.normal { color: #52c41a; }
+    &.warning { color: #faad14; }
+    &.out-of-control { color: #ff4d4f; }
+  }
   }
 }
 
@@ -1156,6 +1170,7 @@ window.addEventListener('resize', handleResize)
   padding: 16px;
   background: var(--color-model-bg);
   border-radius: 6px;
+  height: 128px;
   
   .metric-label {
     font-size: 14px;
@@ -1192,21 +1207,61 @@ window.addEventListener('resize', handleResize)
   height: 400px;
 }
 
+.chart-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  
+  .chart-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    
+    .chart-content {
+      flex: 1;
+    }
+  }
+  
+  .metric-item-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    
+    .metric-content {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      padding: 20px;
+      flex: 1;
+      align-content: start;
+    }
+  }
+  
+  .divider-vertical {
+    width: 1px;
+    background-color: var(--color-model-bg);
+    margin: 16px 0;
+  }
+  
+  .header {
+    color: var(--color-dark-text);
+    padding: 16px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: solid 1.5px var(--color-model-bg);
+  }
+}
+
 .anomaly-status {
   width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  
-  .status-text {
-    font-size: 16px;
-    font-weight: 500;
-    
-    &.normal { color: #52c41a; }
-    &.warning { color: #faad14; }
-    &.out-of-control { color: #ff4d4f; }
-  }
+  gap: 16px;
   
   .rule-desc {
     color: var(--color-Hlight-text);
