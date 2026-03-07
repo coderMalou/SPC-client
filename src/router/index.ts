@@ -21,14 +21,14 @@ const router = createRouter({
       name: 'task',
       component: () => import('@/views/task/index.vue'),
       meta: {requireAuth: true},
-      // children: [
-      //   {
-      //     path: '/task/detail',
-      //     name: 'taskDetail',
-      //     component: () => import('@/views/task/detail.vue'),
-      //     meta: {requireAuth: true},
-      //   }
-      // ]
+      children: [
+        {
+          path: '/task/detail',
+          name: 'taskDetail',
+          component: () => import('@/views/task/detail.vue'),
+          meta: {requireAuth: true},
+        }
+      ]
     },
     {
       path: '/graph',
