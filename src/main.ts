@@ -8,11 +8,15 @@ import router from './router'
 import './assets/base.css'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import naive from 'naive-ui'
+import 'vfonts/Lato.css'
+import 'vfonts/FiraCode.css'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus)
+app.use(naive)
 
 app.mount('#app')

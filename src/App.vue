@@ -46,16 +46,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="app-container">
-    <TopBar v-if="user.isLoggedIn"/>
-    <div class="main-content">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
+  <n-message-provider>
+    <div class="app-container">
+      <TopBar v-if="user.isLoggedIn"/>
+      <div class="main-content">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </div>
     </div>
-  </div>
+  </n-message-provider>
 </template>
 
 <style>
