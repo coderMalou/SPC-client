@@ -420,11 +420,6 @@ const overallRange = ref(0)
 
 const editingRows = ref<SampleData[]>([])
 
-const tableData = computed(() => [
-  ...editingRows.value,
-  ...sampleData.value
-])
-
 // 计算属性：分页后的数据
 const pagedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
@@ -432,7 +427,13 @@ const pagedData = computed(() => {
   return sampleData.value.slice(start, end)
 })
 
-const curStatus = ref(() => {
+// 计算属性：表格显示的数据
+const tableData = computed(() => [
+  ...editingRows.value,
+  ...pagedData.value
+])
+
+const curStatus = computed(() => {
     return prop.selectedItem.status === '0'
 })
 
