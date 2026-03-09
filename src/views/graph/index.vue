@@ -112,6 +112,7 @@
       <div class="chart-item">
         <div class="header">
           <h3>Xbar控制图 (均值图)</h3>
+          <span class="label">Xbar图显示子组均值的稳定性，用于检测过程中心的偏移</span>
         </div>
         <div class="chart-content">
           <div ref="xbarChart" class="chart-container"></div>
@@ -120,7 +121,8 @@
       <div class="divider-vertical"></div>
       <div class="chart-item">
         <div class="header">
-          <h3>X-R控制图 (极差图)</h3>
+          <h3>R控制图 (极差图)</h3>
+          <span class="label">R图显示子组内变异(极差)的稳定性，用于检测过程编译的变化</span>
         </div>
         <div class="chart-content">
           <div ref="xrChart" class="chart-container"></div>
@@ -135,6 +137,7 @@
       <div class="chart-item">
         <div class="header">
           <h3>S控制图 (标准差图)</h3>
+          <span class="label">S图显示子组内标准差的变化，用于监控过程变异性的稳定性</span>
         </div>
         <div class="chart-content">
           <div ref="sChart" class="chart-container"></div>
@@ -144,6 +147,7 @@
       <div class="chart-item">
         <div class="header">
           <h3>样本与均值偏离表</h3>
+          <span class="label">是组内均值、组内样本和整体均值的偏离记录</span>
         </div>
         <div class="chart-content">
           <div ref="deviationChart" class="chart-container"></div>
@@ -224,6 +228,7 @@
       <div class="chart-item">
         <div class="header">
           <h3>过程能力直方图</h3>
+          <span class="label">展示实际数据雨理论正态分布的对比，用于识别数据异常点和分布偏差</span>
         </div>
         <div class="chart-content">
           <div ref="histogramChart" class="chart-container"></div>
@@ -1093,7 +1098,6 @@ window.addEventListener('resize', handleResize)
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    border-bottom: solid 1.5px var(--color-model-bg);
   }
 
   .content {
@@ -1250,10 +1254,14 @@ window.addEventListener('resize', handleResize)
     color: var(--color-dark-text);
     padding: 16px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-between;
-    align-items: center;
-    border-bottom: solid 1.5px var(--color-model-bg);
+    align-items: flex-start;
+  }
+
+  .label {
+    font-size: 13px;
+    color: #000000aa;
   }
 }
 
