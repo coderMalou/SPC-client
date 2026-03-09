@@ -212,7 +212,7 @@
           </div>
           <div class="metric-item">
             <span class="metric-label">不良率(PPM)</span>
-            <span class="metric-value">{{ capabilityMetrics.defectRate }}</span>
+            <span class="metric-value">{{ capabilityMetrics.defectRate }}%</span>
           </div>
           <div class="metric-item">
             <span class="metric-label">西格玛水平</span>

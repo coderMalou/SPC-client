@@ -51,7 +51,7 @@
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">创建时间</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.ctime"></el-input>
+                    <el-input disabled v-model="selectedItem.ctime"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text); display: inline-flex;gap:5px;">任务状态
@@ -117,7 +117,7 @@
             <div class="stat-card header">
                 <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid+`-${selectedItem.pname}` }}</span>
                 <div style="display: flex; align-items: center;">
-                     <el-button type="primary" plain @click="addNewRow">
+                     <el-button type="primary" plain :disabled="!isEdit" @click="addNewRow">
                         <el-icon><list-icon /></el-icon> 新增数据
                     </el-button>
 
@@ -125,7 +125,7 @@
                         <el-icon><excel-icon /></el-icon> 导出导入模板
                     </el-button>
 
-                    <el-button type="success" plain @click="importExcel">
+                    <el-button type="success" plain :disabled="!isEdit" @click="importExcel">
                         <el-icon><excel-icon /></el-icon> 导入Excel
                     </el-button>
 
