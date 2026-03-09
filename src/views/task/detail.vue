@@ -346,7 +346,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus';
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
@@ -374,7 +374,7 @@ interface data {
 const prop = defineProps<{
     isShowDetails: boolean;
     selectedItem: data;
-    isEdit: boolean;
+    isEdit: boolean; //true：编辑模式 false：只读模式
 }>()
 
 defineEmits(['close','change'])
@@ -419,6 +419,69 @@ const overallMean = ref(0)
 const overallRange = ref(0)
 
 const editingRows = ref<SampleData[]>([])
+
+// 原始数据副本，用于检测未保存的修改
+const originalData = ref<any>(null)
+
+// 保存原始数据副本
+const saveOriginalData = () => {
+  originalData.value = {
+    editingRows: JSON.parse(JSON.stringify(editingRows.value)),
+    sampleData: JSON.parse(JSON.stringify(sampleData.value)),
+    techList: JSON.parse(JSON.stringify(techList.value)),
+    spec: spec.value,
+    unit: unit.value,
+    technic: technic.value
+  }
+}
+
+// 计算属性：检测是否有未保存的修改
+const hasUnsavedChanges = computed(() => {
+  if (!prop.isEdit || !originalData.value) {
+    return false
+  }
+
+  // 检查是否有正在编辑的新增行
+  if (editingRows.value.length > 0) {
+    return true
+  }
+
+  // 检查样本数据是否发生变化
+  if (JSON.stringify(sampleData.value) !== JSON.stringify(originalData.value.sampleData)) {
+    return true
+  }
+
+  // 检查工序信息是否发生变化
+  if (JSON.stringify(techList.value) !== JSON.stringify(originalData.value.techList)) {
+    return true
+  }
+
+  // 检查其他表单字段是否发生变化
+  if (spec.value !== originalData.value.spec) {
+    return true
+  }
+  if (unit.value !== originalData.value.unit) {
+    return true
+  }
+  if (technic.value !== originalData.value.technic) {
+    return true
+  }
+
+  return false
+})
+
+// beforeunload 事件处理函数
+const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+  if (prop.isEdit && hasUnsavedChanges.value) {
+    event.returnValue = '您有未保存的修改，确定要离开吗？'
+    return event.returnValue
+  }
+}
+
+// 检查未保存修改的方法（供父组件调用）
+const checkUnsavedChanges = () => {
+  return hasUnsavedChanges.value
+}
 
 // 计算属性：分页后的数据
 const pagedData = computed(() => {
@@ -747,7 +810,17 @@ const exportExcel = () => {
 // 初始化
 onMounted(() => {
   loadData()
+  saveOriginalData()
+  window.addEventListener('beforeunload', handleBeforeUnload)
 })
+
+// 组件卸载前移除事件监听
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
+
+// 暴露方法供父组件调用
+defineExpose({ checkUnsavedChanges })
 </script>
 
 <style scoped lang="scss">

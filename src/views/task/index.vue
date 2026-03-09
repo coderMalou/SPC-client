@@ -222,11 +222,12 @@
                 </div>
             </template>
         </el-dialog>
-        <detail 
+        <detail
+            ref="detailRef"
             :is-show-details="isShowDetails"
             :selected-item="selectedItem"
             :is-edit="isEdit"
-            @close="()=>isShowDetails = false"
+            @close="handleCloseDetail"
             @change="handleStatusChange"
         />
     </div>
@@ -235,10 +236,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue' 
 import * as XLSX from 'xlsx'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
 import { useRouter } from 'vue-router';
 const router = useRouter()
+
+// detail 组件引用
+const detailRef = ref<InstanceType<typeof import('./detail.vue').default> | null>(null)
 
 import searchScope from '@/components/icons/searchScope.vue';
 import downArrow from '@/components/icons/downArrow.vue';
@@ -261,6 +265,39 @@ const pageSize = ref(10)
 // 详情显示
 const isShowDetails = ref(false)
 const isEdit = ref(false)
+
+// 处理关闭详情弹窗
+const handleCloseDetail = async () => {
+    // 如果不是编辑模式，直接关闭
+    if (!isEdit.value) {
+        isShowDetails.value = false
+        return
+    }
+    
+    // 检查是否有未保存的修改
+    const hasUnsavedChanges = detailRef.value?.checkUnsavedChanges()
+    if (!hasUnsavedChanges) {
+        isShowDetails.value = false
+        return
+    }
+    
+    // 弹出确认对话框
+    try {
+        await ElMessageBox.confirm(
+            '是否保留修改并离开?',
+            '确认离开',
+            {
+                confirmButtonText: '离开',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }
+        )
+        // 用户确认离开
+        isShowDetails.value = false
+    } catch {
+        // 用户取消，保持弹窗打开
+    }
+}
 const isShowDialog = ref(false)
 const deletDialog = ref(false)
 
