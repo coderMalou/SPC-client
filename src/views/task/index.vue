@@ -157,7 +157,10 @@
                                         type="warning" 
                                         size="small" 
                                         class="btn-delete"
-                                        @click="handleDelete(scope.row)"
+                                        @click="()=>{
+                                            deletDialog = true
+                                            currentMission = scope.row
+                                        }"
                                     >
                                         删除
                                     </el-button>
@@ -203,6 +206,22 @@
                 </div>
             </template>
         </el-dialog>
+        <el-dialog
+          v-model="deletDialog"
+          title="提示"
+          width="500"
+        >
+            <span>是否删除当前任务?</span>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="deletDialog = false">取消</el-button>
+                    <el-button type="primary" @click="()=>{
+                        handleDelete(currentMission)
+                        deletDialog = false
+                    }">确认</el-button>
+                </div>
+            </template>
+        </el-dialog>
         <detail 
             :is-show-details="isShowDetails"
             :selected-item="selectedItem"
@@ -243,6 +262,7 @@ const pageSize = ref(10)
 const isShowDetails = ref(false)
 const isEdit = ref(false)
 const isShowDialog = ref(false)
+const deletDialog = ref(false)
 
 // 原始数据
 const taskNoList = ref([
@@ -299,6 +319,7 @@ const currentTicket = ref<any>(taskNoList.value[0])
 const currentNo = ref(taskNoList.value[0]?.no || '')
 const currentType = ref(0)
 const currentStatus = ref(0)
+const currentMission = ref()
 const selectedData = ref([])
 const selectedItem = ref<data>({})
 
