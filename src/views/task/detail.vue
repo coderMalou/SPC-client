@@ -296,7 +296,7 @@
                             取消
                         </el-button>
                         </template> -->
-                        <el-input v-if="scope.row.isNew" v-model="scope.row.operator" size="small" />
+                        <el-input v-if="scope.row.isNew" v-model="scope.row.remark" size="small" />
                         <span v-else>{{ scope.row.remark }}</span>
                     </template>
                     </el-table-column>
