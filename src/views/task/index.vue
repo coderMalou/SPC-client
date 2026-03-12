@@ -57,11 +57,11 @@
                 <div class="divider"></div>
                 <div class="operate-bar">
                     <div class="operate-btn">
-                        <!-- <el-button type="primary">
+                        <el-button type="primary" @click="handleAdd">
                             <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 30px;">添加</span>
                         </el-button>
-                        <el-button type="primary">
+                        <!-- <el-button type="primary">
                             <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 50px;">批量添加</span>
                         </el-button> -->
@@ -229,6 +229,7 @@
             :is-edit="isEdit"
             @close="handleCloseDetail"
             @change="handleStatusChange"
+            @save="handleSaveTask"
         />
     </div>
 </template>
@@ -452,6 +453,41 @@ const handleEdit = (row: any) => {
     isEdit.value = true
     console.log('编辑行:', row)
 }
+const handleAdd = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hour = String(now.getHours()).padStart(2, '0')
+    const minute = String(now.getMinutes()).padStart(2, '0')
+    const second = String(now.getSeconds()).padStart(2, '0')
+    const ctime = `${year}-${month}-${day} ${hour}:${minute}:${second}`
+    
+    selectedItem.value = {
+        ticket: currentNo.value,
+        ctime: ctime
+    }
+    isShowDetails.value = true
+    isEdit.value = true
+    console.log('新增任务')
+}
+
+const handleSaveTask = (taskData: any) => {
+    console.log('保存新任务:', taskData)
+    // 添加到任务列表
+    const newTask = {
+        ...taskData,
+        line: taskData.line || 1,
+        no: taskData.tid || `T${Date.now()}`,
+        status: taskData.status === '0' ? 0 : 1,
+        ctime: new Date().toISOString().split('T')[0]
+    }
+    rawTableData.value.unshift(newTask)
+    // 关闭详情页
+    isShowDetails.value = false
+    ElMessage.success('任务添加成功')
+}
+
 const handleDetail = (row: any) => {
     selectedItem.value = row
     isShowDetails.value = true

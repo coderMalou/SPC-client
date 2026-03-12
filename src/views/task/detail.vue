@@ -6,12 +6,17 @@
                     <span style="font-size: 18px;text-align: center;">任务管理</span>
                 </el-button>
                 <span style="color: #ccc; font-size: 21px;">></span>
-                <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">任务详情</span>
+                <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">{{ isAddMode ? '新增任务' : '任务详情' }}</span>
             </div>
-            <el-button @click="$emit('close')">
-                <el-icon><left-arrow /></el-icon>
-                <span style="font-size: 18px;">返回任务管理</span>
-            </el-button>
+            <div style="display: flex; gap: 10px;">
+                <el-button type="primary" v-if="isEdit" @click="handleSave">
+                    <span style="font-size: 18px;">保存任务</span>
+                </el-button>
+                <el-button @click="$emit('close')">
+                    <el-icon><left-arrow /></el-icon>
+                    <span style="font-size: 18px;">返回任务管理</span>
+                </el-button>
+            </div>
         </div>
         <div class="stat-card"><!--基本信息-->
             <div class="stat-card header"><span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">任务基本信息</span></div>
@@ -103,19 +108,19 @@
                     <span style="color: var(--color-dark-text);">总体样本量</span>
                     <el-input :disabled="!isEdit" v-model="techList.total"></el-input>
                 </div>
-                <div class="stat-card sub">
+                <!-- <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">作业设备编码</span>
                     <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">仪器/治具编码</span>
                     <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
-                </div>
+                </div> -->
             </div>
         </div>
         <div class="measure-table">
             <div class="stat-card header">
-                <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid+`-${selectedItem.pname}` }}</span>
+                <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid || ""+`-${selectedItem.pname ?? ""}` }}</span>
                 <div style="display: flex; align-items: center;">
                      <el-button type="primary" plain :disabled="!isEdit" @click="addNewRow">
                         <el-icon><list-icon /></el-icon> 新增数据
@@ -127,6 +132,7 @@
 
                     <el-button type="success" plain :disabled="!isEdit" @click="importExcel">
                         <el-icon><excel-icon /></el-icon> 导入Excel
+                      
                     </el-button>
 
                     <el-button type="success" plain @click="exportExcel">
@@ -346,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage } from 'element-plus';
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
@@ -377,7 +383,28 @@ const prop = defineProps<{
     isEdit: boolean; //true：编辑模式 false：只读模式
 }>()
 
-defineEmits(['close','change'])
+// 计算属性：判断是否为新增模式
+const isAddMode = computed(() => {
+    return prop.isEdit && (!prop.selectedItem || !prop.selectedItem.tid)
+})
+
+// 保存任务处理函数
+const handleSave = () => {
+    // 收集表单数据
+    const taskData = {
+        ...prop.selectedItem,
+        spec: spec.value,
+        unit: unit.value,
+        technic: technic.value,
+        techList: techList.value,
+        status: curStatus.value ? '0' : '1'
+    }
+    // 触发保存事件
+    emit('save', taskData)
+    console.log('保存任务:', taskData)
+}
+
+const emit = defineEmits(['close','change', 'save'])
 
 const spec = ref('Ø50×30')
 const unit = ref('mm')
@@ -391,6 +418,25 @@ const techList = ref({
     lsl: '50',
     set: '5',
     total: '5',
+})
+
+watch(()=>isAddMode.value, (val)=> {
+  if (val) {
+    spec.value = ''
+    unit.value = ''
+    technic.value = ''
+    techList.value = {
+      techid: '',
+      techname: '',
+      ch: '',
+      standard: '',
+      usl: '',
+      lsl: '',
+      set: '',
+      total: '',
+    }
+    sampleData.value = []
+  }
 })
 
 interface SampleData {
@@ -503,7 +549,7 @@ const curStatus = computed(() => {
 // 加载数据
 const loadData = () => {
   // 固定示例数据
-  const sampleGroups = [
+  const sampleGroups = !isAddMode ? [
     { id: '样本组1', values: [42.64, 48.02, 54.06, 57.82, 62.40] },
     { id: '样本组2', values: [57.82, 59.28, 40.00, 47.00, 49.92] },
     { id: '样本组3', values: [50.96, 45.12, 59.28, 43.00, 38.40] },
@@ -514,7 +560,7 @@ const loadData = () => {
     { id: '样本组8', values: [62.40, 60.00, 41.82, 59.28, 62.40] },
     { id: '样本组9', values: [57.20, 47.04, 53.04, 57.82, 41.82] },
     { id: '样本组10', values: [57.12, 46.80, 54.06, 38.40, 53.04] }
-  ]
+  ] : []
 
   const groupMeans: number[] = [] // 组内均值
   const groupRanges: number[] = [] // 组内极差
