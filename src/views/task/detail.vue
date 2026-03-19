@@ -533,6 +533,7 @@ const checkUnsavedChanges = () => {
 const pagedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
+  console.log("测量数据表：",sampleData.value.slice(start, end))
   return sampleData.value.slice(start, end)
 })
 
@@ -549,7 +550,7 @@ const curStatus = computed(() => {
 // 加载数据
 const loadData = () => {
   // 固定示例数据
-  const sampleGroups = !isAddMode ? [
+  const sampleGroups = !isAddMode.value ? [
     { id: '样本组1', values: [42.64, 48.02, 54.06, 57.82, 62.40] },
     { id: '样本组2', values: [57.82, 59.28, 40.00, 47.00, 49.92] },
     { id: '样本组3', values: [50.96, 45.12, 59.28, 43.00, 38.40] },
@@ -608,6 +609,7 @@ const loadData = () => {
     }
     
     sampleData.value.push(sample)
+    console.log("初始化测量数据：",sampleData.value)
   })
   
   // 计算整体均值和极差
@@ -1070,6 +1072,156 @@ defineExpose({ checkUnsavedChanges })
   
   .status-tag {
     font-size: 10px;
+  }
+}
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+  .task-detail {
+    padding: 70px 12px 12px;
+  }
+
+  // 顶部导航区域
+  .redirector {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    
+    > div:first-child {
+      font-size: 14px !important;
+      gap: 6px !important;
+      
+      span {
+        font-size: 14px !important;
+      }
+    }
+    
+    > div:last-child {
+      flex-wrap: wrap;
+      justify-content: center;
+      
+      .el-button {
+        font-size: 12px;
+        padding: 8px 12px;
+        
+        span {
+          font-size: 14px !important;
+        }
+      }
+    }
+  }
+
+  // 卡片标题调整
+  .stat-card.header {
+    padding: 12px;
+    
+    span {
+      font-size: 16px !important;
+    }
+  }
+
+  // 表单内容区域 - 改为两列
+  .stat-card.content {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .stat-card.sub {
+    min-width: calc(50% - 8px);
+    flex: 0 0 calc(50% - 8px);
+    
+    span {
+      font-size: 13px;
+    }
+  }
+
+  // 输入框调整
+  .el-input {
+    font-size: 13px;
+  }
+
+  // 按钮区域
+  .button-group {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    
+    .el-button {
+      width: 100%;
+    }
+  }
+
+  // 表格区域
+  .table-container {
+    overflow-x: auto;
+    
+    .el-table {
+      font-size: 12px;
+    }
+  }
+
+  // 分页调整
+  .pagination-container {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+  .task-detail {
+    padding: 66px 8px 8px;
+  }
+
+  .redirector {
+    padding: 10px;
+    
+    > div:first-child {
+      font-size: 13px !important;
+      flex-wrap: wrap;
+      
+      span {
+        font-size: 13px !important;
+      }
+    }
+  }
+
+  .stat-card.header {
+    padding: 10px;
+    
+    span {
+      font-size: 14px !important;
+    }
+  }
+
+  .stat-card.content {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .stat-card.sub {
+    min-width: 100%;
+    flex: 0 0 100%;
+    
+    span {
+      font-size: 12px;
+    }
+  }
+
+  .el-input {
+    font-size: 12px;
+  }
+
+  .button-group {
+    .el-button {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
   }
 }
 </style>

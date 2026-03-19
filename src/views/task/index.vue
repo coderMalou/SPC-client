@@ -701,6 +701,28 @@ onMounted(() => {
     padding: 0 10px;
 }
 
+// 移动端响应式样式
+@media (max-width: 768px) {
+    .task-number {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    // 确保父容器不隐藏
+    .task-total {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+}
+
 .search-bar {
     position: relative;
     width: 100%;
@@ -947,6 +969,141 @@ onMounted(() => {
     
     .el-select .el-input__inner {
         font-size: 14px;
+    }
+}
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+    .task-container {
+        padding: 70px 12px 12px;
+    }
+
+    // 隐藏工单号侧边栏
+    .task-number {
+        display: none;
+    }
+
+    .task-total {
+        gap: 0;
+    }
+
+    // 操作栏垂直布局
+    .operate-bar {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 8px;
+    }
+
+    .operate-btn {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    // 筛选搜索区域垂直布局
+    .filter-search {
+        flex-wrap: wrap;
+        width: 100%;
+        
+        .el-select {
+            width: 48% !important;
+        }
+        
+        .el-input {
+            width: 48% !important;
+        }
+        
+        .el-button {
+            width: 100%;
+            margin-top: 8px;
+        }
+    }
+
+    // 表格容器
+    .table-container {
+        overflow-x: auto;
+        
+        .el-table {
+            font-size: 12px;
+        }
+    }
+
+    // 操作按钮调整
+    .operation-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        
+        .el-button {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+    }
+
+    // 分页调整
+    .pagination-container {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+    }
+
+    // 标题调整
+    .task-list > div:first-child {
+        font-size: 16px !important;
+        padding: 8px !important;
+    }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+    .task-container {
+        padding: 66px 8px 8px;
+    }
+
+    .operate-btn {
+        .el-button {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+    }
+
+    .filter-search {
+        .el-select, .el-input {
+            width: 100% !important;
+            margin-bottom: 4px;
+        }
+        
+        .el-button {
+            margin-top: 4px;
+        }
+    }
+
+    .table-container {
+        .el-table {
+            font-size: 11px;
+            
+            .cell {
+                padding: 4px;
+            }
+        }
+    }
+
+    // 隐藏部分列
+    .el-table {
+        .el-table_column {
+            &-3, &-4, &-5, &-6 {
+                display: none;
+            }
+        }
+    }
+
+    .task-list > div:first-child {
+        font-size: 14px !important;
     }
 }
 </style>

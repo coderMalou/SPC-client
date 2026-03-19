@@ -1265,6 +1265,90 @@ window.addEventListener('resize', handleResize)
   }
 }
 
+// 移动端响应式样式
+@media (max-width: 768px) {
+  // 确保info-card不限制内容
+  .info-card {
+    overflow: visible !important;
+  }
+  
+  // 图表行垂直排列，避免重叠
+  .chart-row {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+  }
+  
+  // 每个图表项占满宽度
+  .chart-item,
+  .metric-item-wrapper {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex: none !important;
+    margin-bottom: 20px !important;
+  }
+  
+  // 隐藏垂直分割线
+  .divider-vertical {
+    display: none !important;
+  }
+  
+  // 图表内容容器
+  .chart-content {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  
+  // 图表容器必须明确尺寸
+  .chart-container {
+    width: 100% !important;
+    height: 300px !important;
+    min-height: 300px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  // 过程能力指标内容
+  .metric-content {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  
+  .metric-item {
+    flex: 1 1 45% !important;
+    min-width: 120px !important;
+  }
+  
+  // 工具栏移动端垂直布局
+  .tool-bar {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  
+  .filter {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  .filter-item {
+    width: 100% !important;
+  }
+  
+  .filter-item label {
+    display: block !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .filter-item .el-select {
+    width: 100% !important;
+  }
+}
+
 .anomaly-status {
   width: 100%;
   display: flex;
@@ -1305,9 +1389,169 @@ window.addEventListener('resize', handleResize)
 }
 
 .divider {
-  width: 100%; 
+  width: 100%;
   border: solid 0.5px var(--color-model-bg);
   color: transparent;
   height: 0;
+}
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+  .graph-container {
+    padding: 70px 12px 12px;
+  }
+
+  // 筛选工具栏 - 垂直布局
+  .tool-bar {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .filter {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .filter-item {
+    width: 100%;
+    
+    label {
+      width: 60px;
+      font-size: 13px;
+    }
+    
+    .el-select {
+      width: calc(100% - 70px) !important;
+    }
+  }
+
+  .operation {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+    
+    .el-button {
+      flex: 1;
+      font-size: 13px;
+    }
+  }
+
+  // 信息卡片调整
+  .info-card {
+    .header {
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      
+      h3 {
+        font-size: 16px;
+        margin: 0;
+      }
+    }
+
+    .content {
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .sub {
+      min-width: calc(50% - 8px);
+      flex: 0 0 calc(50% - 8px);
+      padding: 8px;
+      
+      .label {
+        font-size: 12px;
+      }
+      
+      .value {
+        font-size: 13px;
+      }
+    }
+  }
+
+  // 图表区域
+  .chart-section {
+    padding: 12px;
+    
+    .chart-header {
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      
+      h4 {
+        font-size: 15px;
+        margin: 0;
+      }
+    }
+    
+    .chart-container {
+      height: 300px;
+    }
+  }
+
+  // 统计表格
+  .stats-table {
+    padding: 12px;
+    
+    table {
+      font-size: 12px;
+      
+      th, td {
+        padding: 8px 4px;
+      }
+    }
+  }
+
+  // 表格内容
+  .table-content {
+    padding: 10px;
+    overflow-x: auto;
+  }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+  .graph-container {
+    padding: 66px 8px 8px;
+  }
+
+  .tool-bar {
+    padding: 10px;
+  }
+
+  .filter-item {
+    label {
+      width: 50px;
+      font-size: 12px;
+    }
+  }
+
+  .operation {
+    .el-button {
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+  }
+
+  .info-card {
+    .sub {
+      min-width: 100%;
+      flex: 0 0 100%;
+    }
+  }
+
+  .chart-section .chart-container {
+    height: 250px;
+  }
+
+  .stats-table table {
+    font-size: 11px;
+  }
 }
 </style>

@@ -555,38 +555,121 @@ onUnmounted(() => {
   }
 }
 
-// 响应式设计
-@media (max-width: 480px) {
+// ====================================
+// 移动端适配 (768px 以下)
+// ====================================
+@media (max-width: 768px) {
   .login-page {
+    // 登录对话框移动端宽度
     .login-dialog {
-      padding: 10px;
+      width: 90%;
+      max-width: 90%;
+      padding: 0 10px;
     }
 
+    // 登录卡片移动端调整
     .login-card {
+      border-radius: 12px !important;
+      
+      // 移动端头部标题调整
+      .login-header {
+        padding: 8px 0 0;
+
+        h3 {
+          margin: 0 0 6px 0;
+          font-size: 22px;
+        }
+
+        .subtitle {
+          font-size: 12px;
+        }
+      }
+
+      // 卡片内容区域移动端内边距
       :deep(.n-card__content) {
-        padding: 20px;
+        padding: 20px 16px;
       }
     }
 
-    .login-header {
-      h3 {
-        font-size: 24px;
-      }
-
-      .subtitle {
-        font-size: 12px;
-      }
+    // 表单元素间距调整
+    :deep(.n-form-item) {
+      margin-bottom: 16px;
     }
 
+    // 验证码容器移动端垂直排列
     .captcha-container {
-      .captcha-image {
-        width: 100px;
-        height: 40px;
+      flex-direction: column;
+      gap: 10px;
 
+      .captcha-input {
+        width: 100%;
+      }
+
+      .captcha-image {
+        width: 100%;
+        height: 40px;
+        
         img {
           height: 40px;
         }
       }
+    }
+
+    // 登录按钮移动端调整
+    .login-btn {
+      height: 40px;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+
+    // 输入框图标移动端调整
+    .input-icon {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+// ====================================
+// 小屏幕设备 (480px 以下)
+// ====================================
+@media (max-width: 480px) {
+  .login-page {
+    .login-card {
+      .login-header {
+        h3 {
+          font-size: 20px;
+        }
+
+        .subtitle {
+          font-size: 11px;
+        }
+      }
+
+      :deep(.n-card__content) {
+        padding: 16px 12px;
+      }
+    }
+
+    .captcha-container {
+      gap: 8px;
+
+      .captcha-image {
+        height: 36px;
+        
+        img {
+          height: 36px;
+        }
+      }
+    }
+
+    .login-btn {
+      height: 38px;
+      font-size: 14px;
+    }
+
+    :deep(.n-form-item) {
+      margin-bottom: 14px;
     }
   }
 }

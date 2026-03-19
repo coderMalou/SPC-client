@@ -89,4 +89,43 @@ body {
   height: 100vh !important;
   margin: 0;
 }
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .app-container {
+    width: 100%;
+    height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .main-content {
+    width: 100%;
+    height: calc(100%);
+    overflow-x: hidden;
+  }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+
+  .app-container {
+    width: 100%;
+  }
+
+  .main-content {
+    width: 100%;
+  }
+}
 </style>

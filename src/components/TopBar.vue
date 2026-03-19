@@ -100,4 +100,103 @@ const handleTask = () => {
     background: #2f54eb;
     color: #fff;
 }
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+    .top-bar {
+        padding: 0 12px;
+        height: 50px;
+    }
+
+    .system-name {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .logo {
+        font-size: 16px;
+    }
+
+    .main-menu {
+        margin-left: 16px;
+    }
+
+    .menu-item {
+        min-width: 60px;
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+
+    /* 时间显示在移动端隐藏 */
+    .top-bar > span:nth-child(3) {
+        display: none !important;
+    }
+
+    /* 用户信息区域调整 */
+    .top-bar > div:last-child {
+        width: auto;
+        gap: 10px;
+        font-size: 12px;
+    }
+
+    .top-bar > div:last-child > div:first-child select {
+        width: 80px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .top-bar > div:last-child > div:last-child {
+        font-size: 12px;
+    }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+    .top-bar {
+        padding: 0 8px;
+        height: 46px;
+    }
+
+    .system-name {
+        display: none;
+    }
+
+    .logo {
+        font-size: 14px;
+    }
+
+    .main-menu {
+        margin-left: 8px;
+    }
+
+    .menu-item {
+        min-width: 50px;
+        padding: 8px 8px;
+        font-size: 12px;
+    }
+
+    /* 用户信息区域进一步调整 */
+    .top-bar > div:last-child {
+        gap: 6px;
+    }
+
+    .top-bar > div:last-child > div:first-child select {
+        width: 70px;
+        height: 26px;
+        font-size: 11px;
+        padding: 2px;
+    }
+
+    .top-bar > div:last-child > div:last-child {
+        font-size: 11px;
+        max-width: 70px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
 </style>
