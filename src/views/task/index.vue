@@ -31,15 +31,15 @@
                             :key="item.no" 
                             class="taskNo-list" 
                             :class="{active: currentNo === item.no}"
+                            @click="()=>handleTaskNoClick(item)"
                         >
                             <div 
                                 class="taskNo" 
                                 :class="{active: currentNo === item.no}" 
-                                @click="()=>handleTaskNoClick(item)"
                             >
                                 {{ item.no }}
                             </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; padding-right: 8px;">
                                 <div class="status-badge badge-done" v-if="item.status === 1">已关闭</div>
                                 <div class="status-badge status-done" v-else>已启用</div>
                                 <powerOff @click="()=>{
@@ -193,7 +193,7 @@
         <el-dialog
           v-model="isShowDialog"
           title="提示"
-          width="500"
+          :width="dialogWidth"
         >
             <span>是否{{ currentTicket.status === 1 ? "开启" : "关闭" }}当前工单:&nbsp;{{ currentNo }}?</span>
             <template #footer>
@@ -209,7 +209,7 @@
         <el-dialog
           v-model="deletDialog"
           title="提示"
-          width="500"
+          :width="dialogWidth"
         >
             <span>是否删除当前任务?</span>
             <template #footer>
@@ -235,12 +235,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue' 
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
 import { useRouter } from 'vue-router';
 const router = useRouter()
+
+// 响应式屏幕宽度检测
+const screenWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+const isMobile = computed(() => screenWidth.value <= 768)
+
+// 动态计算dialog宽度
+const dialogWidth = computed(() => {
+    return isMobile.value ? '300px' : '500px'
+})
+
+// 监听窗口大小变化
+const handleResize = () => {
+    screenWidth.value = window.innerWidth
+}
 
 // detail 组件引用
 const detailRef = ref<InstanceType<typeof import('./detail.vue').default> | null>(null)
@@ -656,6 +670,13 @@ const handleStatusChange = () => {
 // 初始化
 onMounted(() => {
     console.log('组件已加载')
+    // 监听窗口大小变化
+    window.addEventListener('resize', handleResize)
+})
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -786,6 +807,7 @@ onMounted(() => {
 }
 
 .taskNo-container {
+    padding: 0 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -793,11 +815,10 @@ onMounted(() => {
 }
 
 .taskNo-list {
-    margin-left: 12px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 2px 0;
-    gap: 16px;
     border-radius: 8px;
     transition: all 0.2s ease;
 }
@@ -1034,7 +1055,8 @@ onMounted(() => {
     // 操作按钮调整
     .operation-buttons {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: center;
         gap: 4px;
         
         .el-button {
