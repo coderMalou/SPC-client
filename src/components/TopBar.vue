@@ -10,13 +10,8 @@
         </nav>
         <span style="display: flex; width: 30%; justify-content: center;">{{ formattedTime }}</span>
         <div style="display: flex; align-items: center; gap:15px; font-weight: bold;">
-            <div>
-                <select id="company-select"
-                    style="width: 100px;height: 32px;text-align: center;border-radius: 4px; border: none; padding: 4px; background: #fff; color: #001529;">
-                    <!-- <option value="深圳公司1">深圳公司1</option>
-                    <option value="深圳公司2">深圳公司2</option> -->
-                    <option v-for="item in companies" :value="item.name" @click="()=>curCompany = item.name">{{ item.name }}</option>
-                </select>
+            <div style="min-width: 100px;">
+                <CompanySelector v-model="curCompany" :companies="companies" />
             </div>
             <div style="margin-left:auto">张三 (质量工程师)</div>
         </div>
@@ -27,6 +22,7 @@
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useTime } from '@/utils/clock';
+import CompanySelector from './CompanySelector.vue';
 
 const router = useRouter()
 const route = useRoute()
@@ -141,10 +137,8 @@ const handleTask = () => {
         font-size: 12px;
     }
 
-    .top-bar > div:last-child > div:first-child select {
-        width: 80px;
-        height: 28px;
-        font-size: 12px;
+    .top-bar > div:last-child > div:first-child .company-selector {
+        width: 100px;
     }
 
     .top-bar > div:last-child > div:last-child {
@@ -184,11 +178,8 @@ const handleTask = () => {
         gap: 6px;
     }
 
-    .top-bar > div:last-child > div:first-child select {
-        width: 70px;
-        height: 26px;
-        font-size: 11px;
-        padding: 2px;
+    .top-bar > div:last-child > div:first-child .company-selector {
+        width: 100px;
     }
 
     .top-bar > div:last-child > div:last-child {
