@@ -121,7 +121,8 @@
         <div class="measure-table">
             <div class="stat-card header">
                 <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid || ""+`-${selectedItem.pname ?? ""}` }}</span>
-                <div style="display: flex; align-items: center;">
+                <!-- PC端按钮布局 -->
+                <div v-if="!isMobile" style="display: flex; align-items: center; gap: 8px;">
                      <el-button type="primary" plain :disabled="!isEdit" @click="addNewRow">
                         <el-icon><list-icon /></el-icon> 新增数据
                     </el-button>
@@ -138,6 +139,30 @@
                     <el-button type="success" plain @click="exportExcel">
                         <el-icon><excel-icon /></el-icon> 导出Excel
                     </el-button>
+                </div>
+                <!-- 移动端下拉菜单 -->
+                <div v-else class="mobile-actions">
+                    <el-dropdown trigger="click" @command="handleCommand">
+                        <el-button type="primary">
+                            <el-icon><more-filled /></el-icon> 更多操作
+                        </el-button>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item :command="'add'">
+                                    <el-icon><list-icon /></el-icon> 新增数据
+                                </el-dropdown-item>
+                                <el-dropdown-item :command="'exportTemplate'">
+                                    <el-icon><excel-icon /></el-icon> 导出导入模板
+                                </el-dropdown-item>
+                                <el-dropdown-item :command="'import'">
+                                    <el-icon><excel-icon /></el-icon> 导入Excel
+                                </el-dropdown-item>
+                                <el-dropdown-item :command="'export'">
+                                    <el-icon><excel-icon /></el-icon> 导出Excel
+                                </el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
                 </div>
             </div>
             <div class="divider"></div>
@@ -354,6 +379,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage } from 'element-plus';
+import { MoreFilled } from '@element-plus/icons-vue';
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
 import excelIcon from '@/components/icons/excelIcon.vue';
@@ -363,6 +389,40 @@ import { useTime } from '@/utils/clock';
 import { formatTimeStamp } from '@/utils/functions';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
+
+// 移动端检测
+const isMobile = ref(window.innerWidth <= 768)
+
+// 监听窗口大小变化
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+// 下拉菜单命令处理
+const handleCommand = (command: string) => {
+  switch (command) {
+    case 'add':
+      addNewRow()
+      break
+    case 'exportTemplate':
+      exportTemplate()
+      break
+    case 'import':
+      importExcel()
+      break
+    case 'export':
+      exportExcel()
+      break
+  }
+}
 
 interface data {
     line?: number;
@@ -1175,7 +1235,7 @@ defineExpose({ checkUnsavedChanges })
    ==================================== */
 @media (max-width: 480px) {
   .task-detail {
-    padding: 66px 8px 8px;
+    padding: 0 8px 8px;
   }
 
   .redirector {
