@@ -228,7 +228,7 @@
       <div class="chart-item">
         <div class="header">
           <h3>过程能力直方图</h3>
-          <span class="label">展示实际数据雨理论正态分布的对比，用于识别数据异常点和分布偏差</span>
+          <span class="label">展示实际数据与理论正态分布的对比，用于识别数据异常点和分布偏差</span>
         </div>
         <div class="chart-content">
           <div ref="histogramChart" class="chart-container"></div>
