@@ -387,6 +387,7 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useTime } from '@/utils/clock';
 import { formatTimeStamp } from '@/utils/functions';
+import { getTaskDetail, getMeasurements } from '@/api/modules';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
 
@@ -435,6 +436,9 @@ interface data {
     status?: string;
     stime?: string;
     ctime?: string;
+    _rawData?: {
+        id?: number;
+    };
 }
 
 const prop = defineProps<{
@@ -463,25 +467,133 @@ const handleSave = () => {
     emit('save', taskData)
     console.log('保存任务:', taskData)
 }
-
 const emit = defineEmits(['close','change', 'save'])
 
-const spec = ref('Ø50×30')
-const unit = ref('mm')
-const technic = ref('车削→钻孔→热处理→磨削')
+const spec = ref('')
+const unit = ref('')
+const technic = ref('')
 const techList = ref({
-    techid: 'SW251015001',
-    techname: '常规机加工',
-    ch: '外径',
-    standard: '50',
-    usl: '50',
-    lsl: '50',
-    set: '5',
-    total: '5',
+    techid: '',
+    techname: '',
+    ch: '',
+    standard: '',
+    usl: '',
+    lsl: '',
+    set: '',
+    total: '',
 })
 
-watch(()=>isAddMode.value, (val)=> {
-  if (val) {
+// 任务ID
+const taskId = computed(() => prop.selectedItem?._rawData?.id)
+
+// 获取任务详情
+const fetchTaskDetail = async () => {
+    if (!taskId.value) return
+    try {
+        const res = await getTaskDetail(taskId.value)
+        if (res.code === 200 && res.data) {
+            const data = res.data
+            spec.value = data.spec || ''
+            unit.value = data.unit || ''
+            technic.value = data.processRouteName || ''
+            techList.value = {
+                techid: data.processName || '',
+                techname: data.processName || '',
+                ch: data.qualityChar || '',
+                standard: data.targetValue?.toString() || '',
+                usl: data.usl?.toString() || '',
+                lsl: data.lsl?.toString() || '',
+                set: data.subgroupSize?.toString() || '',
+                total: data.totalSampleSize?.toString() || '',
+            }
+        }
+    } catch (error) {
+        console.error('获取任务详情失败:', error)
+        ElMessage.error('获取任务详情失败')
+    }
+}
+
+// 获取测量数据
+const fetchMeasurements = async () => {
+    if (!taskId.value) return
+    try {
+        const res = await getMeasurements(taskId.value)
+        if (res.code === 200 && res.data) {
+            const groupMeans: number[] = []
+            const groupRanges: number[] = []
+            
+            sampleData.value = res.data.map((item: any, index: number) => {
+                const values = item.sampleValues || []
+                const mean = values.filter((v: number) => v != null).reduce((a: number, b: number) => a + b, 0) / (values.filter((v: number) => v != null).length || 1)
+                const range = values.filter((v: number) => v != null).length > 1
+                    ? Math.max(...values.filter((v: number) => v != null)) - Math.min(...values.filter((v: number) => v != null))
+                    : 0
+                
+                groupMeans.push(mean)
+                groupRanges.push(range)
+                
+                // 根据USL/LSL计算状态
+                const usl = parseFloat(techList.value.usl) || 0
+                const lsl = parseFloat(techList.value.lsl) || 0
+                let status: '正常' | '警告' | '异常' = '正常'
+                if (mean > usl || mean < lsl) {
+                    status = '异常'
+                } else if (mean > usl - (usl - lsl) * 0.1 || mean < lsl + (usl - lsl) * 0.1) {
+                    status = '警告'
+                }
+                
+                return {
+                    id: item.id?.toString() || `sample-${index + 1}`,
+                    subgroupId: item.groupNo?.toString() || `SG${100 + index + 1}`,
+                    datetime: item.measureTime ? formatDateTime(item.measureTime) : '',
+                    value1: values[0] ?? null,
+                    value2: values[1] ?? null,
+                    value3: values[2] ?? null,
+                    value4: values[3] ?? null,
+                    value5: values[4] ?? null,
+                    mean: parseFloat(mean.toFixed(2)),
+                    range: parseFloat(range.toFixed(2)),
+                    status,
+                    operator: item.operator || '',
+                    remark: item.remark || '',
+                    enabled: item.enabled === 1
+                }
+            })
+            
+            // 计算整体均值和极差
+            if (groupMeans.length > 0) {
+                overallMean.value = parseFloat((groupMeans.reduce((sum, val) => sum + val, 0) / groupMeans.length).toFixed(2))
+                overallRange.value = parseFloat((groupRanges.reduce((sum, val) => sum + val, 0) / groupRanges.length).toFixed(2))
+            }
+        }
+    } catch (error) {
+        console.error('获取测量数据失败:', error)
+        ElMessage.error('获取测量数据失败')
+    }
+}
+
+// 格式化日期时间
+const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    const second = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+}
+
+// 监听任务切换，获取任务详情和测量数据
+watch(()=>prop.selectedItem, async (val)=> {
+  if (val && val._rawData?.id) {
+    // 获取任务详情和测量数据
+    await fetchTaskDetail()
+    await fetchMeasurements()
+    saveOriginalData()
+  } else if (isAddMode.value) {
+    // 新增模式
     spec.value = ''
     unit.value = ''
     technic.value = ''
@@ -496,8 +608,10 @@ watch(()=>isAddMode.value, (val)=> {
       total: '',
     }
     sampleData.value = []
+    overallMean.value = 0
+    overallRange.value = 0
   }
-})
+}, { immediate: true })
 
 interface SampleData {
   id: string
@@ -606,76 +720,6 @@ const tableData = computed(() => [
 const curStatus = computed(() => {
     return prop.selectedItem.status === '0'
 })
-
-// 加载数据
-const loadData = () => {
-  // 固定示例数据
-  const sampleGroups = !isAddMode.value ? [
-    { id: '样本组1', values: [42.64, 48.02, 54.06, 57.82, 62.40] },
-    { id: '样本组2', values: [57.82, 59.28, 40.00, 47.00, 49.92] },
-    { id: '样本组3', values: [50.96, 45.12, 59.28, 43.00, 38.40] },
-    { id: '样本组4', values: [41.82, 40.00, 62.40, 59.28, 53.00] },
-    { id: '样本组5', values: [38.40, 43.00, 61.20, 41.82, 62.40] },
-    { id: '样本组6', values: [48.02, 53.00, 41.00, 48.00, 60.00] },
-    { id: '样本组7', values: [49.00, 55.12, 41.00, 53.76, 55.00] },
-    { id: '样本组8', values: [62.40, 60.00, 41.82, 59.28, 62.40] },
-    { id: '样本组9', values: [57.20, 47.04, 53.04, 57.82, 41.82] },
-    { id: '样本组10', values: [57.12, 46.80, 54.06, 38.40, 53.04] }
-  ] : []
-
-  const groupMeans: number[] = [] // 组内均值
-  const groupRanges: number[] = [] // 组内极差
-
-  // 处理每个样本组
-  sampleGroups.forEach((group, index) => {
-    const subgroupId = `SG${100 + (index + 1)}`
-    const date = `2025-09-${20 + (index + 1)}`
-    const time = `08:${(10 + (index + 1) * 2).toString().padStart(2, '0')}:00`
-    
-    const values = group.values
-    const mean = values.reduce((a, b) => a + b, 0) / values.length
-    const range = Math.max(...values) - Math.min(...values)
-    
-    groupMeans.push(mean)
-    groupRanges.push(range)
-    
-    // 确定状态
-    let status: '正常' | '警告' | '异常' = '正常'
-    if (mean > 50.06 || mean < 49.98) {
-      status = '异常'
-    } else if (mean > 50.04 || mean < 50.00) {
-      status = '警告'
-    }
-    
-    const operator = index % 3 === 0 ? '王五' : (index % 3 === 1 ? '李四' : '赵六')
-    const remark = status === '正常' ? '' : '需关注'
-    
-    // 创建样本数据对象
-    const sample: SampleData = {
-      id: `sample-${index + 1}`,
-      subgroupId,
-      datetime: `${date} ${time}`,
-      value1: parseFloat(values[0]!.toFixed(2)),
-      value2: parseFloat(values[1]!.toFixed(2)),
-      value3: parseFloat(values[2]!.toFixed(2)),
-      value4: parseFloat(values[3]!.toFixed(2)),
-      value5: parseFloat(values[4]!.toFixed(2)),
-      mean: parseFloat(mean.toFixed(2)),
-      range: parseFloat(range.toFixed(2)),
-      status,
-      operator,
-      remark,
-      enabled: true
-    }
-    
-    sampleData.value.push(sample)
-    console.log("初始化测量数据：",sampleData.value)
-  })
-  
-  // 计算整体均值和极差
-  overallMean.value = parseFloat((groupMeans.reduce((sum, val) => sum + val, 0) / groupMeans.length).toFixed(2))
-  overallRange.value = parseFloat((groupRanges.reduce((sum, val) => sum + val, 0) / groupRanges.length).toFixed(2))
-}
 
 // 获取行样式类
 const getRowClass = ({ row }: { row: SampleData }) => {
@@ -917,8 +961,6 @@ const exportExcel = () => {
 
 // 初始化
 onMounted(() => {
-  loadData()
-  saveOriginalData()
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
 

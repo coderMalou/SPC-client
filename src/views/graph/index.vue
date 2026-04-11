@@ -1,33 +1,12 @@
 <template>
-  <div class="graph-container" ref="exportTarget">
-    <!-- 顶部筛选工具栏 -->
+  <div class="graph-container" ref="exportTarget" v-loading="loading">
+    
+
+    <!-- 顶部工具栏 -->
     <div class="tool-bar">
       <div class="filter">
-        <!-- 工单号筛选 -->
-        <div class="filter-item">
-          <label>工单号</label>
-          <el-select v-model="filter.workOrder" placeholder="请选择工单号" @change="handleFilterChange" style="width: 135px;">
-            <el-option
-              v-for="item in workOrderOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
-        
-        <!-- 任务筛选 -->
-        <div class="filter-item">
-          <label>任务</label>
-          <el-select v-model="filter.task" placeholder="请选择任务" @change="handleFilterChange" style="width: 135px;">
-            <el-option
-              v-for="item in taskOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
+        <span v-if="currentTaskId" class="task-info">当前任务ID: {{ currentTaskId }}</span>
+        <span v-else class="task-info">未指定任务</span>
       </div>
       
       <div class="operation">
@@ -38,7 +17,7 @@
         </el-button>
         
         <!-- 刷新按钮 -->
-        <el-button @click="refreshData">
+        <el-button @click="refreshData" :loading="loading">
           <i class="el-icon-refresh"></i>
           刷新
         </el-button>
@@ -265,14 +244,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsOption, SeriesOption } from 'echarts'
 import { ElMessage, ElSelect, ElOption, ElButton, ElTag, ElTooltip, ElTable, ElTableColumn } from 'element-plus'
 import html2canvas from 'html2canvas'
 
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 const router = useRouter()
+const route = useRoute()
+
+// 导入 API模块
+import { getControlChart, getCapability } from '@/api/modules/index';
 
 // 筛选条件接口
 interface Filter {
@@ -378,18 +361,9 @@ const filter = ref<Filter>({
   workOrder: 'WO001',
   task: 'T001'
 })
+const workOrderOptions = ref<{ value: string; label: string }[]>([])
 
-const workOrderOptions = ref([
-  { value: 'WO001', label: 'WO001' },
-  { value: 'WO002', label: 'WO002' },
-  { value: 'WO003', label: 'WO003' }
-])
-
-const taskOptions = ref([
-  { value: 'T001', label: '任务001' },
-  { value: 'T002', label: '任务002' },
-  { value: 'T003', label: '任务003' }
-])
+const taskOptions = ref<{ value: string; label: string }[]>([])
 
 const basicInfo = ref<BasicInfo>({
   productCode: 'P001',
@@ -428,6 +402,19 @@ const subgroupData = ref<SubgroupData[]>([])
 const exportTarget = ref<HTMLElement|null>(null);
 const previewUrl = ref('');
 const loading = ref(false);
+
+// 当前任务ID
+const currentTaskId = ref<number | null>(null);
+
+// 获取路由参数中的任务ID
+const getTaskIdFromRoute = (): number | null => {
+    const taskId = route.params.taskId
+    if (taskId && typeof taskId === 'string') {
+        const id = parseInt(taskId, 10)
+        return isNaN(id) ? null : id
+    }
+    return null
+}
 
 // 图表引用
 const xbarChart = ref<HTMLElement>()
@@ -571,11 +558,148 @@ const exportImage = async () => {
   }
 };
 
-const refreshData = (): void => {
-  // 刷新数据逻辑
-  ElMessage.info('数据已刷新')
-  generateMockData()
-  initCharts()
+const refreshData = async (): Promise<void> => {
+  if (!currentTaskId.value) {
+    ElMessage.warning('请先选择任务')
+    return
+  }
+  
+  loading.value = true
+  try {
+    await fetchControlChartData(currentTaskId.value)
+    await fetchCapabilityData(currentTaskId.value)
+    ElMessage.success('数据已刷新')
+  } catch (error) {
+    console.error('刷新数据失败:', error)
+    ElMessage.error('刷新数据失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取控制图数据
+const fetchControlChartData = async (taskId: number) => {
+  try {
+    const res = await getControlChart(String(taskId))
+    if (res.code === 200) {
+      const data = res.data.data
+      
+      // 更新基本信息
+      basicInfo.value = {
+        productCode: data.task?.productCode || '',
+        productName: data.task?.productName || '',
+        workTaskNo: data.task?.taskNo || '',
+        workOrderNo: data.task?.taskNo || '', // 使用taskNo作为工单号
+        processName: data.task?.processName || '',
+        qualityCharacteristic: data.task?.qualityChar || '',
+        equipmentCode: data.task?.equipmentCode || '',
+        subgroupSampleSize: data.task?.subgroupSize || 0,
+        totalSampleSize: data.task?.totalSampleSize || 0,
+        usl: data.task?.usl || 0,
+        lsl: data.task?.lsl || 0,
+        lastUpdateTime: data.lastCheck || ''
+      }
+      
+      // 更新子组数据
+      const groupNos = data.series?.groupNos || []
+      const means = data.series?.means || []
+      const ranges = data.series?.ranges || []
+      const stdevs = data.series?.stdevs || []
+      
+      subgroupData.value = groupNos.map((no: string, index: number) => ({
+        subgroupNo: no,
+        samples: [], // API不直接返回samples，使用均值计算
+        mean: means[index] || 0,
+        stdDev: stdevs[index] || 0,
+        range: ranges[index] || 0
+      }))
+      
+      // 更新recentData
+      recentData.value = subgroupData.value.map((d, index) => ({
+        subgroupNo: d.subgroupNo,
+        sample1: 0,
+        sample2: 0,
+        sample3: 0,
+        sample4: 0,
+        sample5: 0,
+        mean: formatNumber(d.mean, PRECISION_CONFIG.MEAN),
+        stdDev: formatNumber(d.stdDev, PRECISION_CONFIG.STD_DEV),
+        range: formatNumber(d.range, PRECISION_CONFIG.RANGE),
+        inspectionTime: ''
+      }))
+      
+      // 更新异常信息
+      const ruleStatus = data.rules?.status || 'normal'
+      let status: 'normal' | 'warning' | 'out-of-control' = 'normal'
+      if (ruleStatus === '受控' || ruleStatus === '正常') {
+        status = 'normal'
+      } else if (ruleStatus === '警告') {
+        status = 'warning'
+      } else {
+        status = 'out-of-control'
+      }
+      
+      anomalyInfo.value = {
+        status,
+        message: data.rules?.message || '无数据',
+        enabledRule: data.rules?.anomalies?.length > 0 ? `发现${data.rules.anomalies.length}处异常` : '无异常',
+        lastCheckTime: data.lastCheck ? formatDate(data.lastCheck) : ''
+      }
+      
+      // 保存控制限供图表使用
+      controlLimitsRef.value = data.limits || { xbar: null, r: null, s: null }
+      
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('获取控制图数据失败:', error)
+    throw error
+  }
+}
+
+// 格式化日期
+const formatDate = (dateStr: string): string => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${year}年${month}月${day}日 ${hour}:${minute}`
+}
+
+// 保存控制限引用
+const controlLimitsRef = ref<{
+  xbar: { ucl: number; cl: number; lcl: number } | null;
+  r: { ucl: number; cl: number; lcl: number } | null;
+  s: { ucl: number; cl: number; lcl: number } | null;
+}>({ xbar: null, r: null, s: null })
+
+// 获取过程能力数据
+const fetchCapabilityData = async (taskId: number) => {
+  try {
+    const res = await getCapability(taskId)
+    if (res.data.code === 200) {
+      const data = res.data.data
+      
+      capabilityMetrics.value = {
+        cp: data.cp || 0,
+        cpk: data.cpk || 0,
+        pp: data.pp || 0,
+        ppk: data.ppk || 0,
+        defectRate: (data.ppm || 0) / 10000, // PPM转百分比
+        sigmaLevel: data.sigmaLevel || 0
+      }
+      
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('获取过程能力数据失败:', error)
+    throw error
+  }
 }
 
 const viewAllData = (): void => {
@@ -619,7 +743,24 @@ const calculateControlLimits = (data: SubgroupData[]): {
 
 // 初始化图表
 const initCharts = (): void => {
-  const controlLimits = calculateControlLimits(subgroupData.value)
+  // 优先使用API返回的控制限，否则使用本地计算
+  let controlLimits: {
+    xbar: { ucl: number; cl: number; lcl: number };
+    range: { ucl: number; cl: number; lcl: number };
+    std: { ucl: number; cl: number; lcl: number };
+  }
+  
+  if (controlLimitsRef.value.xbar) {
+    // 使用API返回的控制限
+    controlLimits = {
+      xbar: controlLimitsRef.value.xbar || { ucl: 0, cl: 0, lcl: 0 },
+      range: controlLimitsRef.value.r || { ucl: 0, cl: 0, lcl: 0 },
+      std: controlLimitsRef.value.s || { ucl: 0, cl: 0, lcl: 0 }
+    }
+  } else {
+    // 使用本地计算的控制限
+    controlLimits = calculateControlLimits(subgroupData.value)
+  }
   
   // 初始化Xbar控制图
   if (xbarChart.value) {
@@ -1012,11 +1153,54 @@ const generateMockData = (): void => {
 }
 
 // 生命周期
-onMounted(() => {
-  generateMockData()
+onMounted(async () => {
+  // 获取任务ID
+  currentTaskId.value = getTaskIdFromRoute()
+  
+  if (currentTaskId.value) {
+    loading.value = true
+    try {
+      // 获取控制图数据
+      await fetchControlChartData(currentTaskId.value)
+      // 获取过程能力数据
+      await fetchCapabilityData(currentTaskId.value)
+    } catch (error) {
+      console.error('初始化数据失败:', error)
+      ElMessage.error('获取数据失败，将使用模拟数据')
+      generateMockData()
+    } finally {
+      loading.value = false
+    }
+  } else {
+    // 没有任务ID时使用模拟数据
+    ElMessage.warning('未指定任务，将显示模拟数据')
+    generateMockData()
+  }
+  
   nextTick(() => {
     initCharts()
   })
+})
+
+// 监听路由参数变化
+watch(() => route.params.taskId, async (newTaskId) => {
+  const taskId = newTaskId ? parseInt(newTaskId as string, 10) : null
+  if (taskId && !isNaN(taskId)) {
+    currentTaskId.value = taskId
+    loading.value = true
+    try {
+      await fetchControlChartData(taskId)
+      await fetchCapabilityData(taskId)
+      nextTick(() => {
+        initCharts()
+      })
+    } catch (error) {
+      console.error('切换任务失败:', error)
+      ElMessage.error('获取数据失败')
+    } finally {
+      loading.value = false
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -1064,6 +1248,12 @@ window.addEventListener('resize', handleResize)
     display: flex;
     gap: 20px;
     align-items: center;
+}
+
+.task-info {
+  font-size: 14px;
+  color: var(--color-dark-text);
+  font-weight: 500;
 }
 
 .operation {

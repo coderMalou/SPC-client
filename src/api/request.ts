@@ -1,5 +1,4 @@
 import axios from 'axios'
-import qs from 'qs'
 import storage from '@/utils/storage'
 
 const req = axios.create({
@@ -9,7 +8,14 @@ const req = axios.create({
         serialize(params) {
             console.log('params')
             console.log(params)
-            return qs.stringify(params, {allowDots: true})
+            const searchParams = new URLSearchParams()
+            for (const key in params) {
+                const value = params[key]
+                if (value !== undefined && value !== null) {
+                    searchParams.append(key, String(value))
+                }
+            }
+            return searchParams.toString()
         }
     }
 })
@@ -17,16 +23,13 @@ const req = axios.create({
 req.interceptors.request.use(
     (config) => {
         config.headers = config.headers || {}
-
         if (!config.headers['Content-Type']) {
             config.headers['Content-Type'] = 'application/json'
         }
-
-        if (storage.get('token')) config.headers.token = storage.get('token')
-        
+        const token = storage.get('token','session')
+        if (token) config.headers.Authorization = `Bearer ${token}`
         return config
     },
-
     (error) => {
         return Promise.reject(error)
     }
@@ -34,11 +37,11 @@ req.interceptors.request.use(
 
 req.interceptors.response.use(
     (response) => {
-        return response
+        return response.data
     },
 
     (error) => {
-        return Promise.resolve(null)
+        return Promise.reject(error)
     }
 )
 

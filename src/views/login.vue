@@ -97,6 +97,7 @@ import { useMessage, NCard, NForm, NFormItem, NInput, NButton } from 'naive-ui'
 import { curUserData, userStore } from '@/stores/user'
 import storage from '@/utils/storage'
 import { useRouter } from 'vue-router'
+import { login } from '@/api/modules/auth.ts'
 
 const router = useRouter()
 const message = useMessage()
@@ -104,9 +105,6 @@ const message = useMessage()
 // Pinia store
 const { setUser, setCompany } = curUserData()
 const user = userStore()
-
-// 设置公司信息
-setCompany('深圳公司1')
 
 // ==================== Canvas 粒子背景相关 ====================
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -327,65 +325,86 @@ const refreshCaptcha = () => {
   generateCaptcha()
 }
 
-// 模拟登录API
-const mockLogin = (credentials: typeof loginForm): Promise<LoginResponse> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // 模拟登录验证
-      if (credentials.username === 'admin' && credentials.password === '123456') {
-        resolve({
-          success: true,
-          data: {
-            user: credentials.username,
-            company: '深圳公司1',
-            token: 'mock-jwt-token-' + Date.now()
-          }
-        })
-      } else {
-        reject({
-          success: false,
-          message: '用户名或密码错误'
-        })
-      }
-    }, 1000)
-  })
+// 登录API响应类型
+interface LoginAPIResponse {
+  code: number
+  msg: string
+  data: {
+    token: string
+    username: string
+    role: string
+    company: string
+  }
+}
+
+// 登录API调用
+// 登录API调用（使用模块化API）
+const loginAPI = async (credentials: typeof loginForm): Promise<LoginAPIResponse> => {
+    console.log('[Login] 正在调用登录API:', { username: credentials.username })
+    const res = await login(credentials)
+    console.log('[Login] 登录API响应:', res)
+    return res as unknown as LoginAPIResponse
 }
 
 // 处理登录
 const handleLogin = async () => {
-  if (!loginFormRef.value) return
+    if (!loginFormRef.value) return
 
-  try {
-    // 表单验证
-    const valid = await loginFormRef.value.validate()
-    if (!valid) return
+    try {
+        // 表单验证
+        const valid = await loginFormRef.value.validate()
+        if (!valid) return
 
-    loading.value = true
+        loading.value = true
+        console.log('[Login] 开始登录，用户名:', loginForm.username)
 
-    // 调用登录API
-    const response = await mockLogin(loginForm)
+        // 调用登录API
+        const response = await loginAPI(loginForm)
 
-    if (response.success) {
-      // 设置用户信息到Pinia store
-      setUser(loginForm.username)
-      storage.set('user', loginForm.username, 'session')
-      user.login({
-        username: loginForm.username
-      })
+        if (response.code === 200) {
+            const { token, username, role, company } = response.data
+            console.log('[Login] 登录成功:', { username, role, company, token })
 
-      message.success('登录成功')
+            // 存储token
+            storage.set('token', token, 'session')
 
-      // 实际项目中这里应该进行路由跳转
-      console.log('登录成功，跳转到首页')
+            console.log("got token:", storage.get('token','session'))
+
+            // 设置用户信息到Pinia store
+            setUser(username)
+            setCompany(company)
+            storage.set('user', username, 'session')
+            user.login({
+                username,
+                role,
+                company
+            })
+
+            message.success('登录成功')
+
+            // 跳转到任务页面
+            router.push('/task')
+        } else {
+            console.warn('[Login] 登录失败:', response.msg)
+            message.error(response.msg || '登录失败')
+            refreshCaptcha()
+        }
+    } catch (error: any) {
+        console.error('[Login] 登录请求异常:', error)
+        if (error.response) {
+            console.error('[Login] 响应状态:', error.response.status)
+            console.error('[Login] 响应数据:', error.response.data)
+            message.error(`登录失败: ${error.response.status} - ${error.message}`)
+        } else if (error.request) {
+            console.error('[Login] 请求未收到响应')
+            message.error('网络错误：无法连接到服务器，请检查后端服务是否启动')
+        } else {
+            message.error(error.message || '登录失败，请重试')
+        }
+        refreshCaptcha()
+    } finally {
+        loading.value = false
     }
-
-    router.push('/task')
-  } catch (error: any) {
-    message.error(error.message || '登录失败，请重试')
-    refreshCaptcha() // 登录失败刷新验证码
-  } finally {
-    loading.value = false
-  }
 }
 
 // 组件挂载时初始化

@@ -103,6 +103,7 @@
                 <div class="table-container">
                     <el-table
                         :data="pagedTableData"
+                        v-loading="loading"
                         row-key="tid"
                         style="width: 100%; table-layout: auto;"
                         @selection-change="handleMultiSelect"
@@ -240,6 +241,7 @@ import * as XLSX from 'xlsx'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
 import { useRouter } from 'vue-router';
+import { getWorkOrders, getTasks } from '@/api/modules';
 const router = useRouter()
 
 // 响应式屏幕宽度检测
@@ -316,31 +318,8 @@ const handleCloseDetail = async () => {
 const isShowDialog = ref(false)
 const deletDialog = ref(false)
 
-// 原始数据
-const taskNoList = ref([
-    {no:'WO20251013001', status: 0},
-    {no:'WO20251013002', status: 0},
-    {no:'WO20251013003', status: 0},
-    {no:'WO20251013004', status: 0},
-    {no:'WO20251013005', status: 1},
-    {no:'WO20251013006', status: 0},
-])
-
-const typeList = ref([
-    {name: '全部类别', id: 0},
-    {name:'机加工', id: 1},
-    {name:'冲压', id: 2},
-    {name:'热处理', id: 3}
-])
-
-const statusList = ref([
-    {name: '全部状态', id: 0},
-    {name: '启用', id: 1},
-    {name: '停用', id: 2}
-])
-
-// 模拟的表格数据
-interface data {
+// 数据类型定义
+interface TaskData {
     line?: number;
     ticket?: string;
     pid?: string;
@@ -351,29 +330,113 @@ interface data {
     status?: string;
     stime?: string;
     ctime?: string;
+    _rawData?: any;
 }
 
-const rawTableData = ref<data[]>([
-    {line:1, ticket:'WO20251013001', pid:'123456', pname:'铆接总成', tid:'WO20251013001-001', tname:'总成检外观', devid:'00001', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
-    {line:2, ticket:'WO20251013002', pid:'123457', pname:'铆接总成', tid:'WO20251013002-001', tname:'总成检外观', devid:'00002', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
-    {line:3, ticket:'WO20251013001', pid:'123458', pname:'铆接总成', tid:'WO20251013001-002', tname:'总成检外观', devid:'00001', status:'1', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
-    {line:4, ticket:'WO20251013003', pid:'123459', pname:'轴套组件', tid:'WO20251013003-001', tname:'轴套装配', devid:'00003', status:'2', stime:'2025-10-12 14:20:10', ctime:'2025-10-01 08:30:00'},
-    {line:5, ticket:'WO20251013004', pid:'123460', pname:'轴套组件', tid:'WO20251013004-001', tname:'轴套装配', devid:'00003', status:'0', stime:'2025-10-12 16:45:30', ctime:'2025-10-02 09:15:00'},
-    {line:6, ticket:'WO20251013005', pid:'123461', pname:'齿轮箱体', tid:'WO20251013005-001', tname:'齿轮装配', devid:'00004', status:'1', stime:'2025-10-11 10:30:00', ctime:'2025-10-03 13:20:00'},
-    {line:7, ticket:'WO20251013006', pid:'123462', pname:'齿轮箱体', tid:'WO20251013006-001', tname:'齿轮装配', devid:'00004', status:'0', stime:'2025-10-11 15:20:00', ctime:'2025-10-03 13:20:00'},
-    {line:8, ticket:'WO20251013001', pid:'123463', pname:'轴承座', tid:'WO20251013001-003', tname:'轴承装配', devid:'00005', status:'0', stime:'2025-10-10 09:10:20', ctime:'2025-10-04 10:00:00'},
-    {line:9, ticket:'WO20251013002', pid:'123464', pname:'轴承座', tid:'WO20251013002-002', tname:'轴承装配', devid:'00005', status:'2', stime:'2025-10-10 11:30:40', ctime:'2025-10-04 10:00:00'},
-    {line:10, ticket:'WO20251013003', pid:'123465', pname:'法兰盘', tid:'WO20251013003-002', tname:'法兰加工', devid:'00006', status:'0', stime:'2025-10-09 13:45:00', ctime:'2025-10-05 14:30:00'},
+// 工单列表数据（从API获取）
+const taskNoList = ref<{no: string, status: number, id?: number}[]>([])
+
+// 类别列表
+const typeList = ref([
+    {name: '全部类别', id: 0},
+    {name: '总成检外观', id: 1},
+    {name: '轴套装配', id: 2},
+    {name: '齿轮装配', id: 3},
 ])
 
+// 状态列表
+const statusList = ref([
+    {name: '全部状态', id: 0},
+    {name: '已启用', id: 1},
+    {name: '已关闭', id: 2},
+])
+
+// 任务列表数据（从API获取）
+const rawTableData = ref<any[]>([])
+
+// 加载状态
+const loading = ref(false)
+
+// 获取工单列表
+// 获取工单列表
+const fetchWorkOrders = async () => {
+    try {
+        const res = await getWorkOrders()
+        if (res.code === 200) {
+            taskNoList.value = res.data.map((item: any) => ({
+                no: item.orderNo,
+                status: item.status,
+                id: item.id
+            }))
+            // 默认选中第一个工单
+            const firstOrder = taskNoList.value[0]
+            if (firstOrder) {
+                currentNo.value = firstOrder.no
+                currentTicket.value = firstOrder
+                // 获取第一个工单的任务列表
+                fetchTasks(firstOrder.id)
+            }
+        }
+    } catch (error) {
+        console.error('获取工单列表失败:', error)
+        ElMessage.error('获取工单列表失败')
+    }
+}
+
+// 获取任务列表
+const fetchTasks = async (workOrderId?: number) => {
+    loading.value = true
+    try {
+        const params: any = {}
+        if (workOrderId) {
+            params.workOrderId = workOrderId
+        }
+        const res = await getTasks(params)
+        if (res.code === 200) {
+            // 转换后端数据为前端需要的格式
+            rawTableData.value = res.data.map((item: any, index: number) => ({
+                line: index + 1,
+                ticket: item.orderNo,
+                tid: item.taskNo,
+                pid: item.productCode,
+                pname: item.productName,
+                tname: item.processName,
+                devid: item.equipmentCode,
+                status: String(item.status),
+                stime: item.enabledAt ? formatDate(item.enabledAt) : '',
+                ctime: item.createdAt ? formatDate(item.createdAt) : '',
+                // 保留原始数据
+                _rawData: item
+            }))
+        }
+    } catch (error) {
+        console.error('获取任务列表失败:', error)
+        ElMessage.error('获取任务列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+// 格式化日期
+const formatDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    const second = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+}
+
 // 选中内容
-const currentTicket = ref<any>(taskNoList.value[0])
-const currentNo = ref(taskNoList.value[0]?.no || '')
+const currentTicket = ref<any>({})
+const currentNo = ref('')
 const currentType = ref(0)
 const currentStatus = ref(0)
 const currentMission = ref()
 const selectedData = ref([])
-const selectedItem = ref<data>({})
+const selectedItem = ref<TaskData>({})
 
 // 计算属性：过滤左侧工单列表
 const filteredTaskNoList = computed(() => {
@@ -455,6 +518,10 @@ const toggleTaskNoList = () => {
 const handleTaskNoClick = (item: any) => {
     currentNo.value = item.no
     currentTicket.value = item
+    // 切换工单时重新获取任务列表
+    if (item.id) {
+        fetchTasks(item.id)
+    }
 }
 
 const handleMultiSelect = (val:any) => {
@@ -509,7 +576,13 @@ const handleDetail = (row: any) => {
     console.log('详情:', row)
 }
 const handleChart = (row: any) => {
-    router.push('/graph')
+    // 从原始数据中获取任务ID
+    const taskId = row._rawData?.id
+    if (taskId) {
+        router.push(`/graph/${taskId}`)
+    } else {
+        router.push('/graph')
+    }
     console.log('控制图:', row)
 }
 const handleDelete = (row: any) => {
@@ -660,7 +733,7 @@ const handleStatusChange = () => {
         return item.ticket === selectedItem.value.ticket && item.pid === selectedItem.value.pid
     })
     const curStatus = rawTableData.value[ind]?.status
-    rawTableData.value.map((item:data, index)=>{
+    rawTableData.value.map((item:TaskData, index)=>{
         if (index === ind) {
             item.status = curStatus === '0' ? '1' : '0'
         }
@@ -672,6 +745,8 @@ onMounted(() => {
     console.log('组件已加载')
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
+    // 获取工单列表和任务列表
+    fetchWorkOrders()
 })
 
 // 组件卸载时移除监听
