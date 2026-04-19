@@ -13,15 +13,42 @@
             <div style="min-width: 100px;">
                 <CompanySelector v-model="curCompany" :companies="companies" />
             </div>
-            <div style="margin-left:auto">张三 (质量工程师)</div>
+            <div class="user-menu" ref="userMenuRef">
+                <div class="user-trigger" @click="toggleUserMenu">
+                    <span class="username">{{ userStore().userInfo?.username }}</span>
+                    <svg
+                        class="arrow-icon"
+                        :class="{ 'arrow-up': isUserMenuOpen }"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 48 48"
+                        fill="none"
+                    >
+                        <path d="M39.6 17.444L24.044 33 8.487 17.444" stroke="currentColor" stroke-width="4"/>
+                    </svg>
+                </div>
+                <Transition name="dropdown">
+                    <div v-if="isUserMenuOpen" class="user-dropdown">
+                        <div class="dropdown-item logout-item" @click="handleLogout">
+                            <svg class="logout-icon" width="16" height="16" viewBox="0 0 48 48" fill="none">
+                                <path d="M32 8H12a4 4 0 00-4 4v8h4V14h22v20H16v-4H12v8a4 4 0 004 4h20a4 4 0 004-4V12a4 4 0 00-4-4z" stroke="currentColor" stroke-width="3"/>
+                                <path d="M32 18l-8-6v6H12v4h12v6l8-6z" stroke="currentColor" stroke-width="3"/>
+                            </svg>
+                            <span>退出登录</span>
+                        </div>
+                    </div>
+                </Transition>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useTime } from '@/utils/clock';
+import { userStore } from '@/stores/user';
+import { getCompanyList } from '@/api/modules/auth';
 import CompanySelector from './CompanySelector.vue';
 
 const router = useRouter()
@@ -51,6 +78,40 @@ const handleTask = () => {
     isShowTask.value = true
     router.push('/task')
 }
+
+// 用户下拉菜单
+const isUserMenuOpen = ref(false)
+const userMenuRef = ref<HTMLElement | null>(null)
+
+const toggleUserMenu = () => {
+    isUserMenuOpen.value = !isUserMenuOpen.value
+}
+
+const handleLogout = () => {
+    userStore().logout(router)
+    isUserMenuOpen.value = false
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+    if (userMenuRef.value && !userMenuRef.value.contains(event.target as Node)) {
+        isUserMenuOpen.value = false
+    }
+}
+
+onMounted(async () => {
+    document.addEventListener('click', handleClickOutside)
+    try {
+        const res = await getCompanyList()
+        companies.value = res.list
+        userStore().setCompanyList(res.list)
+    } catch (error) {
+        console.error('获取公司列表失败:', error)
+    }
+})
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
@@ -97,6 +158,95 @@ const handleTask = () => {
     color: #fff;
 }
 
+/* 用户菜单样式 */
+.user-menu {
+    position: relative;
+    user-select: none;
+}
+
+.user-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    color: #fff;
+}
+
+.user-trigger:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.username {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.arrow-icon {
+    transition: transform 0.2s ease;
+    color: #d6e4ff;
+}
+
+.arrow-icon.arrow-up {
+    transform: rotate(180deg);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 120px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    z-index: 10000;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    color: #001529;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background: #f5f5f5;
+}
+
+.logout-item {
+    color: #ff4d4f;
+}
+
+.logout-item:hover {
+    background: #fff1f0;
+}
+
+.logout-icon {
+    color: #ff4d4f;
+}
+
+/* Transition animations */
+.dropdown-enter-active,
+.dropdown-leave-active {
+    transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
 /* ====================================
    移动端适配 (768px 以下)
    ==================================== */
@@ -141,8 +291,28 @@ const handleTask = () => {
         width: 100px;
     }
 
-    .top-bar > div:last-child > div:last-child {
+    /* 用户菜单调整 */
+    .user-menu {
+        position: relative;
+    }
+
+    .user-trigger {
+        padding: 4px 8px;
         font-size: 12px;
+    }
+
+    .username {
+        max-width: 60px;
+    }
+
+    .user-dropdown {
+        right: 0;
+        min-width: 100px;
+    }
+
+    .dropdown-item {
+        font-size: 12px;
+        padding: 8px 10px;
     }
 }
 
@@ -182,12 +352,28 @@ const handleTask = () => {
         width: 100px;
     }
 
-    .top-bar > div:last-child > div:last-child {
+    /* 用户菜单小屏幕适配 */
+    .user-menu {
+        position: relative;
+    }
+
+    .user-trigger {
+        padding: 4px 6px;
         font-size: 11px;
-        max-width: 70px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    }
+
+    .username {
+        max-width: 50px;
+    }
+
+    .user-dropdown {
+        right: 0;
+        min-width: 90px;
+    }
+
+    .dropdown-item {
+        font-size: 11px;
+        padding: 6px 8px;
     }
 }
 </style>
