@@ -98,6 +98,7 @@ import { curUserData, userStore } from '@/stores/user'
 import storage from '@/utils/storage'
 import { useRouter } from 'vue-router'
 import { login } from '@/api/modules/auth.ts'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const message = useMessage()
@@ -349,6 +350,19 @@ const loginAPI = async (credentials: typeof loginForm): Promise<LoginAPIResponse
 // 处理登录
 const handleLogin = async () => {
     if (!loginFormRef.value) return
+
+    if (loginForm.username === '') {
+      ElMessage.warning('请输入用户名')
+      return 
+    }
+    else if (loginForm.password === '') {
+      ElMessage.warning('请输入密码')
+      return
+    }
+    else if (loginForm.captcha === '') {
+      ElMessage.warning('请输入验证码')
+      return 
+    }
 
     try {
         // 表单验证
