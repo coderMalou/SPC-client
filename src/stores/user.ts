@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { storage } from '@/utils/storage';
+import type { Router } from 'vue-router';
 
 export interface UserInfo {
   id?: number | string;
@@ -8,6 +9,11 @@ export interface UserInfo {
   nickname?: string;
   avatar?: string;
   [key: string]: any; // 其他可能的字段
+}
+
+export interface CompanyItem {
+  id: number;
+  name: string;
 }
 
 const curUser = ref('')
@@ -33,6 +39,9 @@ export const userStore = defineStore('user', () => {
     storage.get<UserInfo>('user_info', 'session')
   );
 
+  // 公司列表
+  const companyList = ref<CompanyItem[]>([]);
+
   // 计算属性：是否已登录
   const isLoggedIn = computed(() => !!userInfo.value);
 
@@ -42,10 +51,20 @@ export const userStore = defineStore('user', () => {
     storage.set('user_info', userData, 'session');
   };
 
+  // 设置公司列表
+  const setCompanyList = (list: CompanyItem[]) => {
+    companyList.value = list;
+  };
+
   // 登出方法
-  const logout = () => {
+  const logout = (router?: Router) => {
     userInfo.value = null;
+    companyList.value = [];
     storage.set('user_info', null, 'session');
+    storage.set('token', null, 'session');
+    if (router) {
+      router.push('/login');
+    }
   };
 
   // 更新用户信息
@@ -58,8 +77,10 @@ export const userStore = defineStore('user', () => {
 
   return {
     userInfo,
+    companyList,
     isLoggedIn,
     login,
+    setCompanyList,
     logout,
     updateUserInfo
   };
