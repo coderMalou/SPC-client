@@ -3,29 +3,39 @@
  */
 import request from '../request'
 
-/**
- * 控制图数据点
- */
-interface ControlChartPoint {
-    subgroup: number
-    value: number
+export interface ControlLimitSet {
     ucl: number
     lcl: number
     cl: number
-    isAbnormal: boolean
-    ruleViolations?: string[]
 }
 
-/**
- * 控制图响应
- */
-interface ControlChartResponse {
-    taskId: string
-    chartType: string
-    points: ControlChartPoint[]
-    ucl: number
-    lcl: number
-    cl: number
+export interface ControlChartLimits {
+    xbar: ControlLimitSet | null
+    r: ControlLimitSet | null
+    s: ControlLimitSet | null
+}
+
+export interface ControlChartSeries {
+    means: number[]
+    ranges: number[]
+    stdevs: number[]
+    groupNos: number[]
+}
+
+export interface ControlChartRules {
+    status: string
+    message: string
+    anomalies: any[]
+}
+
+export interface ControlChartResponse {
+    task: any
+    limits: ControlChartLimits
+    series: ControlChartSeries
+    rules: ControlChartRules
+    overallMean: number
+    overallRange: number
+    lastCheck: string | null
 }
 
 /**
@@ -34,5 +44,5 @@ interface ControlChartResponse {
  * @returns Promise<ControlChartResponse>
  */
 export async function getControlChart(taskId: string): Promise<ControlChartResponse> {
-    return await request.get(`/api/controlChart/task/${taskId}`) as unknown as Promise<ControlChartResponse>
+    return await request.get(`/api/control-chart/task/${taskId}`) as unknown as Promise<ControlChartResponse>
 }

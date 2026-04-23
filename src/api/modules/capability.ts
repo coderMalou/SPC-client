@@ -3,28 +3,17 @@
  */
 import request from '../request'
 
-/**
- * 过程能力指数
- */
-interface CapabilityIndices {
-    cp?: number
-    cpk?: number
-    pp?: number
-    ppk?: number
-    ca?: number
-}
-
-/**
- * 过程能力响应
- */
-interface CapabilityResponse {
-    taskId: string
-    indices: CapabilityIndices
-    usl?: number
-    lsl?: number
-    target?: number
-    mean?: number
-    std?: number
+export interface CapabilityResponse {
+    cp: number
+    cpk: number
+    pp: number
+    ppk: number
+    ppm: number
+    sigmaLevel: number
+    mean: number
+    sigma: number
+    totalN: number
+    outOfSpec: number
 }
 
 /**
