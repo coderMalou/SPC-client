@@ -1,5 +1,6 @@
 import axios from 'axios'
 import storage from '@/utils/storage'
+import { ElMessage } from 'element-plus'
 
 const req = axios.create({
     timeout: 3000,
@@ -26,7 +27,7 @@ req.interceptors.request.use(
         if (!config.headers['Content-Type']) {
             config.headers['Content-Type'] = 'application/json'
         }
-        const token = storage.get('token','session')
+        const token = storage.get('token', 'session')
         if (token) config.headers.Authorization = `Bearer ${token}`
         return config
     },
@@ -41,6 +42,16 @@ req.interceptors.response.use(
     },
 
     (error) => {
+        if (error.response?.status === 401) {
+            ElMessage.error('登录已过期，请重新登录')
+            // 动态导入避免循环依赖
+            import('@/stores/user').then(({ userStore }) => {
+                const store = userStore()
+                store.logout()
+            })
+            // 跳转到登录页
+            window.location.href = '/login'
+        }
         return Promise.reject(error)
     }
 )
