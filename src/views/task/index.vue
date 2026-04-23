@@ -40,7 +40,7 @@
                                 {{ item.no }}
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; padding-right: 8px;">
-                                <div class="status-badge badge-done" v-if="item.status === 1">已关闭</div>
+                                <div class="status-badge badge-done" v-if="item.status === 0">已关闭</div>
                                 <div class="status-badge status-done" v-else>已启用</div>
                                 <powerOff @click="()=>{
                                     isShowDialog = true
@@ -137,7 +137,7 @@
                                         详情
                                     </el-button>
                                     <el-button 
-                                        v-if="currentTicket.status !== 1"
+                                        v-if="currentTicket.status !== 0"
                                         type="warning" 
                                         size="small" 
                                         class="btn-edit"
@@ -154,7 +154,7 @@
                                         控制图
                                     </el-button>
                                     <el-button 
-                                        v-if="currentTicket.status !== 1"
+                                        v-if="currentTicket.status !== 0"
                                         type="warning" 
                                         size="small" 
                                         class="btn-delete"
@@ -196,14 +196,11 @@
           title="提示"
           :width="dialogWidth"
         >
-            <span>是否{{ currentTicket.status === 1 ? "开启" : "关闭" }}当前工单:&nbsp;{{ currentNo }}?</span>
+            <span>是否{{ currentTicket.status === 0 ? "开启" : "关闭" }}当前工单:&nbsp;{{ currentNo }}?</span>
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="isShowDialog = false">取消</el-button>
-                    <el-button type="primary" @click="()=>{
-                        currentTicket.status = currentTicket.status ===  1 ? 0 : 1
-                        isShowDialog = false
-                    }">确认</el-button>
+                    <el-button type="primary" @click="handleWorkOrderStatusChange">确认</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -216,10 +213,7 @@
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="deletDialog = false">取消</el-button>
-                    <el-button type="primary" @click="()=>{
-                        handleDelete(currentMission)
-                        deletDialog = false
-                    }">确认</el-button>
+                    <el-button type="primary" @click="handleDelete(currentMission)">确认</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -241,7 +235,7 @@ import * as XLSX from 'xlsx'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
 import { useRouter } from 'vue-router';
-import { getWorkOrders, getTasks } from '@/api/modules';
+import { getWorkOrders, getTasks, enableWorkOrder, closeWorkOrder, deleteTask, updateTaskStatus } from '@/api/modules';
 const router = useRouter()
 
 // 响应式屏幕宽度检测
@@ -466,7 +460,8 @@ const filteredTableData = computed(() => {
         
         // 按状态过滤
         if (currentStatus.value > 0) {
-            if (item.status !== String(currentStatus.value - 1)) {
+            const targetStatus = currentStatus.value === 1 ? '1' : '0'
+            if (item.status !== targetStatus) {
                 return false
             }
         }
@@ -494,18 +489,16 @@ const pagedTableData = computed(() => {
 // 状态显示格式化
 const getStatusText = (status: string) => {
     switch(status) {
-        case '0': return '启用'
-        case '1': return '已关闭'
-        case '2': return '停用'
+        case '1': return '启用'
+        case '0': return '停用'
         default: return '未知'
     }
 }
 
 const getStatusClass = (status: string) => {
     switch(status) {
-        case '0': return 'status-text status-open'
-        case '1': return 'status-text status-closed'
-        case '2': return 'status-text status-stopped'
+        case '1': return 'status-text status-open'
+        case '0': return 'status-text status-stopped'
         default: return 'status-text'
     }
 }
@@ -546,27 +539,62 @@ const handleAdd = () => {
     
     selectedItem.value = {
         ticket: currentNo.value,
-        ctime: ctime
+        ctime: ctime,
+        workOrderId: currentTicket.value?.id
     }
     isShowDetails.value = true
     isEdit.value = true
     console.log('新增任务')
 }
 
-const handleSaveTask = (taskData: any) => {
-    console.log('保存新任务:', taskData)
-    // 添加到任务列表
-    const newTask = {
-        ...taskData,
-        line: taskData.line || 1,
-        no: taskData.tid || `T${Date.now()}`,
-        status: taskData.status === '0' ? 0 : 1,
-        ctime: new Date().toISOString().split('T')[0]
+const handleWorkOrderStatusChange = async () => {
+    try {
+        const ticketId = String(currentTicket.value?.id)
+        if (!ticketId || ticketId === 'undefined') {
+            ElMessage.error('工单ID不存在')
+            return
+        }
+
+        if (currentTicket.value.status === 0) {
+            await enableWorkOrder(ticketId)
+            currentTicket.value.status = 1
+        } else {
+            await closeWorkOrder(ticketId)
+            currentTicket.value.status = 0
+        }
+
+        const index = taskNoList.value.findIndex((item: any) => item.id === currentTicket.value.id)
+        if (index !== -1 && taskNoList.value[index]) {
+            taskNoList.value[index].status = currentTicket.value.status
+        }
+
+        ElMessage.success(currentTicket.value.status === 1 ? '工单已开启' : '工单已关闭')
+    } catch (error) {
+        console.error('工单状态更新失败:', error)
+        ElMessage.error('工单状态更新失败')
+    } finally {
+        isShowDialog.value = false
     }
-    rawTableData.value.unshift(newTask)
-    // 关闭详情页
-    isShowDetails.value = false
-    ElMessage.success('任务添加成功')
+}
+
+const handleSaveTask = async (taskData: any) => {
+    console.log('保存任务结果:', taskData)
+    try {
+        // 获取当前工单 ID，确保有效
+        const workOrderId = currentTicket.value?.id || currentTicket.value?.workOrderId
+        if (workOrderId) {
+            await fetchTasks(workOrderId)
+        } else {
+            // 如果工单 ID 不存在，获取所有任务
+            await fetchTasks()
+        }
+    } catch (error) {
+        console.error('刷新任务列表失败:', error)
+        ElMessage.error('刷新任务列表失败')
+    } finally {
+        // 关闭详情页
+        isShowDetails.value = false
+    }
 }
 
 const handleDetail = (row: any) => {
@@ -585,12 +613,28 @@ const handleChart = (row: any) => {
     }
     console.log('控制图:', row)
 }
-const handleDelete = (row: any) => {
-    const ind = rawTableData.value.findIndex((item:any)=>{
-        return item.ticket === row.ticket && item.pid === row.pid
-    })
-    rawTableData.value.splice(ind,1)
-    console.log('删除:', row)
+const handleDelete = async (row: any) => {
+    try {
+        const taskId = row._rawData?.id
+        if (!taskId) {
+            ElMessage.error('任务ID不存在，无法删除')
+            return
+        }
+        await deleteTask(String(taskId))
+        // 刷新当前工单下的任务列表
+        const workOrderId = currentTicket.value?.id || currentTicket.value?.workOrderId
+        if (workOrderId) {
+            await fetchTasks(workOrderId)
+        } else {
+            await fetchTasks()
+        }
+        ElMessage.success('任务已删除')
+    } catch (error) {
+        console.error('删除失败:', error)
+        ElMessage.error('删除失败')
+    } finally {
+        deletDialog.value = false
+    }
 }
 
 
@@ -728,16 +772,28 @@ const handleCopy = async () => {
     }
 }
 
-const handleStatusChange = () => {
-    const ind = rawTableData.value.findIndex((item:any)=>{
-        return item.ticket === selectedItem.value.ticket && item.pid === selectedItem.value.pid
-    })
-    const curStatus = rawTableData.value[ind]?.status
-    rawTableData.value.map((item:TaskData, index)=>{
-        if (index === ind) {
-            item.status = curStatus === '0' ? '1' : '0'
+const handleStatusChange = async () => {
+    try {
+        const taskId = selectedItem.value?._rawData?.id
+        if (!taskId) {
+            ElMessage.error('任务ID不存在，无法切换状态')
+            return
         }
-    })
+        const curStatus = selectedItem.value?.status
+        const newStatus = curStatus === '1' ? 0 : 1
+        await updateTaskStatus(String(taskId), newStatus as 0 | 1)
+        // 刷新任务列表
+        const workOrderId = currentTicket.value?.id || currentTicket.value?.workOrderId
+        if (workOrderId) {
+            await fetchTasks(workOrderId)
+        } else {
+            await fetchTasks()
+        }
+        ElMessage.success(newStatus === 1 ? '任务已启用' : '任务已停用')
+    } catch (error) {
+        console.error('状态切换失败:', error)
+        ElMessage.error('状态切换失败')
+    }
 }
 
 // 初始化

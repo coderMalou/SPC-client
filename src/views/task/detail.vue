@@ -60,13 +60,13 @@
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text); display: inline-flex;gap:5px;">任务状态
-                        <div class="status-badge status-done" v-if="selectedItem.status==='0'">启用</div>
-                        <div class="status-badge badge-done" v-if="selectedItem.status!=='0'">停止</div>
+                        <div class="status-badge status-done" v-if="selectedItem.status==='1'">启用</div>
+                        <div class="status-badge badge-done" v-if="selectedItem.status!=='1'">停止</div>
                     </span>
                     <el-switch
                         v-model="curStatus"
                         :disabled="!isEdit"
-                        @change="$emit('change')"
+                        @change="handleTaskStatusChange"
                     />
                 </div>
             </div>
@@ -377,7 +377,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, reactive, nextTick } from 'vue'
 import { ElMessage } from 'element-plus';
 import { MoreFilled } from '@element-plus/icons-vue';
 import leftArrow from '@/components/icons/leftArrow.vue';
@@ -387,7 +387,7 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useTime } from '@/utils/clock';
 import { formatTimeStamp } from '@/utils/functions';
-import { getTaskDetail, getMeasurements } from '@/api/modules';
+import { getTaskDetail, getMeasurements, createTask, createMeasurementBatch, updateTask, updateMeasurement, updateTaskStatus } from '@/api/modules';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
 
@@ -436,6 +436,7 @@ interface data {
     status?: string;
     stime?: string;
     ctime?: string;
+    workOrderId?: number;
     _rawData?: {
         id?: number;
     };
@@ -449,23 +450,160 @@ const prop = defineProps<{
 
 // 计算属性：判断是否为新增模式
 const isAddMode = computed(() => {
-    return prop.isEdit && (!prop.selectedItem || !prop.selectedItem.tid)
+    return prop.isEdit && (!prop.selectedItem?._rawData?.id)
 })
-
 // 保存任务处理函数
-const handleSave = () => {
-    // 收集表单数据
-    const taskData = {
-        ...prop.selectedItem,
-        spec: spec.value,
-        unit: unit.value,
-        technic: technic.value,
-        techList: techList.value,
-        status: curStatus.value ? '0' : '1'
+const handleSave = async () => {
+    try {
+        if (isAddMode.value) {
+            // ===== 新增模式 =====
+            const taskData: any = {
+                workOrderId: prop.selectedItem.workOrderId,
+                productCode: prop.selectedItem.pid,
+                productName: prop.selectedItem.pname,
+                processName: techList.value.techname,
+                spec: spec.value,
+                unit: unit.value,
+                processRouteName: technic.value,
+                qualityChar: techList.value.ch,
+                targetValue: techList.value.standard ? parseFloat(techList.value.standard) : undefined,
+                usl: techList.value.usl ? parseFloat(techList.value.usl) : undefined,
+                lsl: techList.value.lsl ? parseFloat(techList.value.lsl) : undefined,
+                subgroupSize: techList.value.set ? parseInt(techList.value.set) : undefined,
+                totalSampleSize: techList.value.total ? parseInt(techList.value.total) : undefined,
+                equipmentCode: prop.selectedItem.devid || null,
+                instrumentCode: prop.selectedItem.devid || null,
+            }
+
+            const result = await createTask(taskData)
+            if (result.code !== 200) {
+                ElMessage.error(result.message || result.msg || '创建任务失败')
+                return
+            }
+            const newTaskId = result.data?.id
+
+            // 若有测量数据，批量创建
+            if (sampleData.value.length > 0) {
+                const measurementItems = sampleData.value.map(row => ({
+                    sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                    groupNo: parseInt(row.subgroupId) || undefined,
+                    measureTime: row.datetime || undefined,
+                    operator: row.operator || undefined,
+                    remark: row.remark || undefined,
+                }))
+                const batchRes = await createMeasurementBatch(String(newTaskId), measurementItems)
+                if (batchRes.code !== 200) {
+                    ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
+                    return
+                }
+            }
+
+            // 刷新页面数据（新增模式无法用 taskId computed 刷新，直接跳过）
+            // 通知父组件
+            emit('save', { mode: 'create', taskId: newTaskId })
+            ElMessage.success('任务创建成功')
+        } else {
+            // ===== 编辑模式 =====
+            const taskId = prop.selectedItem._rawData?.id
+            if (!taskId) {
+                ElMessage.error('缺少任务ID，无法更新')
+                return
+            }
+
+            const updateData: any = {
+                taskNo: prop.selectedItem.tid,
+                lineNo: prop.selectedItem.line ? parseInt(prop.selectedItem.line) : undefined,
+                productCode: prop.selectedItem.pid,
+                productName: prop.selectedItem.pname,
+                processName: techList.value.techname,
+                spec: spec.value,
+                unit: unit.value,
+                processRouteName: technic.value,
+                qualityChar: techList.value.ch,
+                targetValue: techList.value.standard ? parseFloat(techList.value.standard) : undefined,
+                usl: techList.value.usl ? parseFloat(techList.value.usl) : undefined,
+                lsl: techList.value.lsl ? parseFloat(techList.value.lsl) : undefined,
+                subgroupSize: techList.value.set ? parseInt(techList.value.set) : undefined,
+                totalSampleSize: techList.value.total ? parseInt(techList.value.total) : undefined,
+                equipmentCode: prop.selectedItem.devid || null,
+                instrumentCode: prop.selectedItem.devid || null,
+            }
+
+            // 更新任务基本信息
+            const res = await updateTask(String(taskId), updateData)
+            if (res.code !== 200) {
+                ElMessage.error(res.message || res.msg || '更新任务失败')
+                return
+            }
+
+            // 测量数据差异处理
+            const newMeasurementItems: any[] = []
+            for (const row of sampleData.value) {
+                if (row.id && !row.id.startsWith('sample-')) {
+                    // 已有行：与原始数据对比，有差异则更新
+                    const originalRow = originalData.value?.sampleData?.find((r: any) => r.id === row.id)
+                    if (originalRow) {
+                        const currentForCompare = {
+                            sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                            measureTime: row.datetime,
+                            operator: row.operator,
+                            remark: row.remark,
+                        }
+                        const originalForCompare = {
+                            sampleValues: [originalRow.value1, originalRow.value2, originalRow.value3, originalRow.value4, originalRow.value5],
+                            measureTime: originalRow.datetime,
+                            operator: originalRow.operator,
+                            remark: originalRow.remark,
+                        }
+                        if (JSON.stringify(currentForCompare) !== JSON.stringify(originalForCompare)) {
+                            const updateRes = await updateMeasurement(String(row.id), {
+                                sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                                measureTime: row.datetime || undefined,
+                                operator: row.operator || undefined,
+                                remark: row.remark || undefined,
+                            })
+                            if (updateRes.code !== 200) {
+                                ElMessage.error(updateRes.message || updateRes.msg || '更新测量数据失败')
+                                return
+                            }
+                        }
+                    }
+                } else {
+                    // 新增行：收集到数组中
+                    newMeasurementItems.push({
+                        sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                        groupNo: parseInt(row.subgroupId) || undefined,
+                        measureTime: row.datetime || undefined,
+                        operator: row.operator || undefined,
+                        remark: row.remark || undefined,
+                    })
+                }
+            }
+
+            // 批量创建新增的测量数据
+            if (newMeasurementItems.length > 0) {
+                const batchRes = await createMeasurementBatch(String(taskId), newMeasurementItems)
+                if (batchRes.code !== 200) {
+                    ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
+                    return
+                }
+            }
+
+            // 刷新页面数据
+            await fetchTaskDetail()
+            await fetchMeasurements()
+
+            // 更新原始数据副本
+            saveOriginalData()
+
+            // 通知父组件
+            emit('save', { mode: 'update', taskId })
+            ElMessage.success('任务更新成功')
+        }
+    } catch (error: any) {
+        console.error('保存失败:', error)
+        ElMessage.error('保存失败: ' + (error.message || '未知错误'))
     }
-    // 触发保存事件
-    emit('save', taskData)
-    console.log('保存任务:', taskData)
 }
 const emit = defineEmits(['close','change', 'save'])
 
@@ -717,9 +855,35 @@ const tableData = computed(() => [
   ...pagedData.value
 ])
 
-const curStatus = computed(() => {
-    return prop.selectedItem.status === '0'
+const curStatus = computed({
+    get: () => prop.selectedItem.status === '1',
+    set: (val: boolean) => {
+        prop.selectedItem.status = val ? '1' : '0'
+    }
 })
+
+const handleTaskStatusChange = async () => {
+    try {
+        const taskId = prop.selectedItem._rawData?.id
+        if (!taskId) {
+            ElMessage.error('任务ID不存在')
+            prop.selectedItem.status = prop.selectedItem.status === '1' ? '0' : '1'
+            return
+        }
+
+        const newStatus = prop.selectedItem.status === '1' ? 1 : 0
+
+        await updateTaskStatus(String(taskId), newStatus as 0 | 1)
+
+        ElMessage.success(newStatus === 1 ? '任务已启用' : '任务已停用')
+
+        // emit('change')
+    } catch (error) {
+        console.error('状态切换失败:', error)
+        prop.selectedItem.status = prop.selectedItem.status === '1' ? '0' : '1'
+        ElMessage.error('状态切换失败')
+    }
+}
 
 // 获取行样式类
 const getRowClass = ({ row }: { row: SampleData }) => {
