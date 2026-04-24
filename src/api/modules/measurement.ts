@@ -8,8 +8,9 @@ import request from '../request'
  */
 interface ApiResponse<T> {
     code: number
-    data: T
+    msg: string
     message?: string
+    data: T
 }
 
 /**

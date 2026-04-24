@@ -46,8 +46,9 @@ interface Task {
  */
 interface ApiResponse<T> {
     code: number
-    data: T
+    msg: string
     message?: string
+    data: T
 }
 
 /**
@@ -62,10 +63,15 @@ interface TaskListResponse {
 /**
  * 任务详情响应
  */
-interface TaskDetailResponse extends Task {
-    measurements: any[]
-    controlChart: any
-    capability: any
+interface TaskDetailResponse {
+    code: number
+    msg: string
+    message?: string
+    data: Task & {
+        measurements: any[]
+        controlChart: any
+        capability: any
+    }
 }
 
 /**

@@ -39,10 +39,37 @@ export interface ControlChartResponse {
 }
 
 /**
+ * 工单树节点
+ */
+export interface WorkOrderTreeNode {
+    id: string
+    orderNo: string
+    children?: TaskTreeNode[]
+}
+
+/**
+ * 任务树节点
+ */
+export interface TaskTreeNode {
+    id: string
+    taskNo: string
+    processName: string
+    qualityChar: string
+}
+
+/**
  * 获取任务控制图数据
  * @param taskId - 任务ID
- * @returns Promise<ControlChartResponse>
+ * @returns Promise<{code: number, msg: string, data: ControlChartResponse}>
  */
-export async function getControlChart(taskId: string): Promise<ControlChartResponse> {
-    return await request.get(`/api/control-chart/task/${taskId}`) as unknown as Promise<ControlChartResponse>
+export async function getControlChart(taskId: string): Promise<{code: number, msg: string, data: ControlChartResponse}> {
+    return await request.get(`/api/control-chart/task/${taskId}`) as unknown as Promise<{code: number, msg: string, data: ControlChartResponse}>
+}
+
+/**
+ * 获取工单树（包含任务列表）
+ * @returns Promise<{code: number, data: WorkOrderTreeNode[]}>
+ */
+export async function getWorkOrderTree(): Promise<{code: number, data: WorkOrderTreeNode[]}> {
+    return await request.get('/api/work-orders/tree') as unknown as Promise<{code: number, data: WorkOrderTreeNode[]}>
 }
