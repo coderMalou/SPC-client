@@ -9,7 +9,7 @@
           v-model="selectedWorkOrderTask"
           :options="workOrderTaskTree"
           :props="cascaderProps"
-          placeholder="请选择工单->任务"
+          placeholder="请选择工单和对应任务"
           change-on-select
           filterable
           @change="handleWorkOrderTaskChange"
@@ -1296,12 +1296,12 @@ watch(() => route.query.taskId, async (newTaskId) => {
   }
 })
 
-watch(() => selectedWorkOrderTask.value, (val)=>{
-  if (val) {
-    console.log(111111)
-    basicInfo.value.workOrderNo = findWorkOrderId(parseInt(basicInfo.value.workTaskNo))
-  }
-})
+// watch(() => selectedWorkOrderTask.value, (val)=>{
+//   if (val) {
+//     console.log(111111)
+//     basicInfo.value.workOrderNo = findWorkOrderId(parseInt(basicInfo.value.workTaskNo))
+//   }
+// })
 
 onUnmounted(() => {
   xbarChartInstance?.dispose()

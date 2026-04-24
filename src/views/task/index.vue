@@ -75,14 +75,14 @@
                         </el-button>
                     </div>
                     <div class="filter-search">
-                        <el-select v-model="currentType" placeholder="全部类别" style="width: 120px">
+                        <!-- <el-select v-model="currentType" placeholder="全部类别" style="width: 120px">
                             <el-option
                             v-for="item in typeList"
                             :key="item.id"
                             :label="item.name"
                             :value="item.id"
                             />
-                        </el-select>
+                        </el-select> -->
                         <el-select v-model="currentStatus" placeholder="全部状态" style="width: 120px">
                             <el-option
                             v-for="item in statusList"
