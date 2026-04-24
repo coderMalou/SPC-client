@@ -496,6 +496,10 @@ const handleSave = async () => {
                     ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
                     return
                 }
+                if (batchRes.data?.errors?.length > 0) {
+                    ElMessage.error('数据创建失败: ' + batchRes.data.errors.join('; '))
+                    return
+                }
             }
 
             // 刷新页面数据（新增模式无法用 taskId computed 刷新，直接跳过）
@@ -512,7 +516,7 @@ const handleSave = async () => {
 
             const updateData: any = {
                 taskNo: prop.selectedItem.tid,
-                lineNo: prop.selectedItem.line ? parseInt(prop.selectedItem.line) : undefined,
+                lineNo: prop.selectedItem.line != null ? parseInt(String(prop.selectedItem.line)) : undefined,
                 productCode: prop.selectedItem.pid,
                 productName: prop.selectedItem.pname,
                 processName: techList.value.techname,
@@ -539,7 +543,7 @@ const handleSave = async () => {
             // 测量数据差异处理
             const newMeasurementItems: any[] = []
             for (const row of sampleData.value) {
-                if (row.id && !row.id.startsWith('sample-')) {
+                if (row.id && !row.id.startsWith('sample-') && !row.id.startsWith('new-')) {
                     // 已有行：与原始数据对比，有差异则更新
                     const originalRow = originalData.value?.sampleData?.find((r: any) => r.id === row.id)
                     if (originalRow) {
@@ -548,12 +552,14 @@ const handleSave = async () => {
                             measureTime: row.datetime,
                             operator: row.operator,
                             remark: row.remark,
+                            enabled: row.enabled ? 1 : 0,
                         }
                         const originalForCompare = {
                             sampleValues: [originalRow.value1, originalRow.value2, originalRow.value3, originalRow.value4, originalRow.value5],
                             measureTime: originalRow.datetime,
                             operator: originalRow.operator,
                             remark: originalRow.remark,
+                            enabled: originalRow.enabled ? 1 : 0,
                         }
                         if (JSON.stringify(currentForCompare) !== JSON.stringify(originalForCompare)) {
                             const updateRes = await updateMeasurement(String(row.id), {
@@ -561,6 +567,7 @@ const handleSave = async () => {
                                 measureTime: row.datetime || undefined,
                                 operator: row.operator || undefined,
                                 remark: row.remark || undefined,
+                                enabled: row.enabled ? 1 : 0,
                             })
                             if (updateRes.code !== 200) {
                                 ElMessage.error(updateRes.message || updateRes.msg || '更新测量数据失败')
@@ -576,6 +583,7 @@ const handleSave = async () => {
                         measureTime: row.datetime || undefined,
                         operator: row.operator || undefined,
                         remark: row.remark || undefined,
+                        enabled: row.enabled ? 1 : 0,
                     })
                 }
             }
@@ -585,6 +593,10 @@ const handleSave = async () => {
                 const batchRes = await createMeasurementBatch(String(taskId), newMeasurementItems)
                 if (batchRes.code !== 200) {
                     ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
+                    return
+                }
+                if (batchRes.data?.errors?.length > 0) {
+                    ElMessage.error('数据创建失败: ' + batchRes.data.errors.join('; '))
                     return
                 }
             }
@@ -628,7 +640,7 @@ const taskId = computed(() => prop.selectedItem?._rawData?.id)
 const fetchTaskDetail = async () => {
     if (!taskId.value) return
     try {
-        const res = await getTaskDetail(taskId.value)
+        const res = await getTaskDetail(String(taskId.value))
         if (res.code === 200 && res.data) {
             const data = res.data
             spec.value = data.spec || ''
@@ -655,7 +667,7 @@ const fetchTaskDetail = async () => {
 const fetchMeasurements = async () => {
     if (!taskId.value) return
     try {
-        const res = await getMeasurements(taskId.value)
+        const res = await getMeasurements(String(taskId.value))
         if (res.code === 200 && res.data) {
             const groupMeans: number[] = []
             const groupRanges: number[] = []
@@ -895,11 +907,21 @@ const getRowClass = ({ row }: { row: SampleData }) => {
 // 获取数据点样式类
 const getDataPointClass = (row: SampleData, valueIndex: number) => {
   const value = row[`value${valueIndex + 1}` as keyof SampleData] as number
-  
-  // 简单的数据点状态判断（可以根据实际业务逻辑调整）
-  if (value > 60 || value < 40) {
+  if (value === null || value === undefined) return ''
+
+  const usl = parseFloat(techList.value.usl) || 0
+  const lsl = parseFloat(techList.value.lsl) || 0
+
+  if (!usl && !lsl) return ''
+
+  // 超出规格限为异常
+  if (value > usl || value < lsl) {
     return 'data-point-error'
-  } else if (value > 55 || value < 45) {
+  }
+  // 在规格限的10%范围内为警告
+  const range = usl - lsl
+  const warningZone = range * 0.1
+  if (value > usl - warningZone || value < lsl + warningZone) {
     return 'data-point-warning'
   }
   return 'data-point-normal'
@@ -907,9 +929,18 @@ const getDataPointClass = (row: SampleData, valueIndex: number) => {
 
 // 获取均值状态样式类
 const getMeanStatusClass = (mean: number) => {
-  if (mean > 50.06 || mean < 49.98) {
+  if (mean === null || mean === undefined) return ''
+  const usl = parseFloat(techList.value.usl) || 0
+  const lsl = parseFloat(techList.value.lsl) || 0
+
+  if (!usl && !lsl) return ''
+
+  if (mean > usl || mean < lsl) {
     return 'data-point-error'
-  } else if (mean > 50.04 || mean < 50.00) {
+  }
+  const range = usl - lsl
+  const warningZone = range * 0.1
+  if (mean > usl - warningZone || mean < lsl + warningZone) {
     return 'data-point-warning'
   }
   return 'data-point-normal'
@@ -946,7 +977,11 @@ const handleCurrentChange = (page: number) => {
 const addNewRow = () => {
   editingRows.value.unshift({
     id: `new-${Date.now()}`,
-    subgroupId: '',
+    subgroupId: String(
+        sampleData.value.length > 0
+            ? Math.max(...sampleData.value.map((r: any) => parseInt(r.subgroupId) || 0)) + 1
+            : 1
+    ),
     datetime: '',
     value1: null as any,
     value2: null as any,
@@ -1238,13 +1273,8 @@ defineExpose({ checkUnsavedChanges })
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
-}
-
-.table-container {
-  width: 100%;
   overflow-x: hidden;
   border: 1px solid #ebeef5;
-  border-radius: 4px;
   
   :deep(.el-table) {
     width: 100%;

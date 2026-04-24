@@ -234,9 +234,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
-import { useRouter } from 'vue-router';
-import { getWorkOrders, getTasks, enableWorkOrder, closeWorkOrder, deleteTask, updateTaskStatus } from '@/api/modules';
+import { useRouter, useRoute } from 'vue-router';
+import { getWorkOrders, getTasks, enableWorkOrder, closeWorkOrder, deleteTask, updateTaskStatus, getTaskDetail } from '@/api/modules';
 const router = useRouter()
+const route = useRoute()
 
 // 响应式屏幕宽度检测
 const screenWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
@@ -324,6 +325,7 @@ interface TaskData {
     status?: string;
     stime?: string;
     ctime?: string;
+    workOrderId?: number;
     _rawData?: any;
 }
 
@@ -606,8 +608,9 @@ const handleDetail = (row: any) => {
 const handleChart = (row: any) => {
     // 从原始数据中获取任务ID
     const taskId = row._rawData?.id
+    const orderId = row.ticket
     if (taskId) {
-        router.push(`/graph/${taskId}`)
+        router.push(`/graph/?taskId=${taskId}&orderId=${orderId}`)
     } else {
         router.push('/graph')
     }
@@ -797,12 +800,35 @@ const handleStatusChange = async () => {
 }
 
 // 初始化
-onMounted(() => {
+onMounted(async () => {
     console.log('组件已加载')
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
     // 获取工单列表和任务列表
     fetchWorkOrders()
+
+    // 检查路由参数，自动打开指定任务详情
+    const taskId = route.query.taskId as string
+    if (taskId) {
+        try {
+            const res = await getTaskDetail(taskId)
+            if (res.code === 200 && res.data) {
+                const task = res.data
+                selectedItem.value = {
+                    tid: task.taskNo,
+                    ticket: task.orderNo,
+                    pid: task.productCode,
+                    pname: task.productName,
+                    workOrderId: task.workOrderId ? Number(task.workOrderId) : undefined,
+                    _rawData: task
+                }
+                isShowDetails.value = true
+                isEdit.value = false
+            }
+        } catch (e) {
+            console.error('自动打开任务详情失败:', e)
+        }
+    }
 })
 
 // 组件卸载时移除监听
