@@ -65,9 +65,7 @@
                 clearable
               />
               <div class="captcha-image" @click="refreshCaptcha">
-                <img :src="captchaImage" alt="验证码" v-if="captchaImage" />
-                <span v-else>点击刷新</span>
-                <!-- <div class="refresh-hint">点击刷新</div> -->
+                <canvas ref="captchaCanvasRef" width="120" height="44" class="captcha-canvas" />
               </div>
             </div>
           </n-form-item>
@@ -263,7 +261,7 @@ const loginFormRef = ref<FormInst | null>(null)
 
 // 响应式数据
 const loading = ref(false)
-const captchaImage = ref('')
+const captchaCanvasRef = ref<HTMLCanvasElement | null>(null)
 
 // 登录表单数据
 const loginForm = reactive({
@@ -299,24 +297,86 @@ interface LoginResponse {
   message?: string
 }
 
-// 生成验证码（模拟实现）
+// ==================== Canvas 验证码生成 ====================
+// 生成随机数
+const randomNum = (min: number, max: number): number => {
+  return Math.floor(Math.random() * (max - min) + min)
+}
+
+// 生成随机颜色
+const randomColor = (min: number, max: number): string => {
+  const r = randomNum(min, max)
+  const g = randomNum(min, max)
+  const b = randomNum(min, max)
+  return `rgb(${r},${g},${b})`
+}
+
+// 绘制单个字符（带随机颜色、大小、旋转和位置）
+const drawText = (ctx: CanvasRenderingContext2D, txt: string, i: number, contentWidth: number, contentHeight: number, codeLen: number) => {
+  ctx.fillStyle = randomColor(50, 160)
+  const fontSize = randomNum(28, 38)
+  ctx.font = `${fontSize}px SimHei`
+  const x = (i + 1) * (contentWidth / (codeLen + 1))
+  const y = randomNum(fontSize, contentHeight - 5)
+  const deg = randomNum(-15, 15)
+
+  ctx.translate(x, y)
+  ctx.rotate((deg * Math.PI) / 180)
+  ctx.fillText(txt, 0, 0)
+  ctx.rotate((-deg * Math.PI) / 180)
+  ctx.translate(-x, -y)
+}
+
+// 绘制干扰线
+const drawLine = (ctx: CanvasRenderingContext2D, contentWidth: number, contentHeight: number) => {
+  for (let i = 0; i < 8; i++) {
+    ctx.strokeStyle = randomColor(100, 200)
+    ctx.beginPath()
+    ctx.moveTo(randomNum(0, contentWidth), randomNum(0, contentHeight))
+    ctx.lineTo(randomNum(0, contentWidth), randomNum(0, contentHeight))
+    ctx.stroke()
+  }
+}
+
+// 绘制干扰点
+const drawDot = (ctx: CanvasRenderingContext2D, contentWidth: number, contentHeight: number) => {
+  for (let i = 0; i < 80; i++) {
+    ctx.fillStyle = randomColor(0, 255)
+    ctx.beginPath()
+    ctx.arc(randomNum(0, contentWidth), randomNum(0, contentHeight), 1, 0, 2 * Math.PI)
+    ctx.fill()
+  }
+}
+
+// 生成验证码（Canvas 绘制）
 const generateCaptcha = () => {
-  // 实际项目中这里应该调用后端API获取验证码图片
   const chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678'
   let captcha = ''
   for (let i = 0; i < 4; i++) {
     captcha += chars.charAt(Math.floor(Math.random() * chars.length))
   }
 
-  // 模拟生成验证码图片URL（实际项目中应为后端返回的图片数据）
-  captchaImage.value = `data:image/svg+xml;base64,${btoa(`
-    <svg width="120" height="44" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="#f8f9fa" rx="8"/>
-      <text x="60" y="28" font-family="Arial" font-size="20" text-anchor="middle" fill="#333" font-weight="500">${captcha}</text>
-      <line x1="10" y1="10" x2="30" y2="30" stroke="#ddd" stroke-width="1"/>
-      <line x1="90" y1="15" x2="110" y2="35" stroke="#ddd" stroke-width="1"/>
-    </svg>
-  `)}`
+  const canvas = captchaCanvasRef.value
+  if (!canvas) return captcha
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return captcha
+
+  const contentWidth = canvas.width
+  const contentHeight = canvas.height
+
+  // 清空画布（透明背景）
+  ctx.clearRect(0, 0, contentWidth, contentHeight)
+  ctx.textBaseline = 'bottom'
+
+  // 绘制文字（每个字符随机颜色、大小、旋转角度）
+  for (let i = 0; i < captcha.length; i++) {
+    drawText(ctx, captcha[i], i, contentWidth, contentHeight, captcha.length)
+  }
+
+  // 绘制干扰线和干扰点
+  drawLine(ctx, contentWidth, contentHeight)
+  drawDot(ctx, contentWidth, contentHeight)
 
   return captcha
 }
@@ -541,10 +601,10 @@ onUnmounted(() => {
       overflow: hidden;
       transition: all 0.3s ease;
 
-      img {
+      canvas {
         width: 100%;
         height: 44px;
-        object-fit: cover;
+        border-radius: 6px;
       }
 
       .refresh-hint {
@@ -642,7 +702,7 @@ onUnmounted(() => {
         width: 100%;
         height: 40px;
         
-        img {
+        canvas {
           height: 40px;
         }
       }
@@ -689,8 +749,8 @@ onUnmounted(() => {
 
       .captcha-image {
         height: 36px;
-        
-        img {
+
+        canvas {
           height: 36px;
         }
       }
