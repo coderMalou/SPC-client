@@ -387,7 +387,7 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useTime } from '@/utils/clock';
 import { formatTimeStamp } from '@/utils/functions';
-import { getTaskDetail, getMeasurements, createTask, createMeasurementBatch, updateTask, updateMeasurement, updateTaskStatus } from '@/api/modules';
+import { getTaskDetail, getMeasurements, createTask, createMeasurementBatch, updateTask, updateMeasurement, updateTaskStatus, getControlChart, getCapability } from '@/api/modules';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
 
@@ -633,6 +633,10 @@ const techList = ref({
     total: '',
 })
 
+// 控制限数据（用于状态判断）
+const controlLimits = ref<{ ucl: number; cl: number; lcl: number } | null>(null)
+const sigmaValue = ref<number>(0)
+
 // 任务ID
 const taskId = computed(() => prop.selectedItem?._rawData?.id)
 
@@ -663,6 +667,44 @@ const fetchTaskDetail = async () => {
     }
 }
 
+// 获取控制限和sigma数据
+const fetchControlLimitsAndSigma = async () => {
+    if (!taskId.value) return
+    try {
+        const [controlRes, capabilityRes] = await Promise.all([
+            getControlChart(String(taskId.value)),
+            getCapability(String(taskId.value))
+        ])
+        if (controlRes.code === 200 && controlRes.data?.limits?.xbar) {
+            controlLimits.value = {
+                ucl: controlRes.data.limits.xbar.ucl,
+                cl: controlRes.data.limits.xbar.cl,
+                lcl: controlRes.data.limits.xbar.lcl
+            }
+        } else {
+            controlLimits.value = null
+        }
+        if (capabilityRes.code === 200 && capabilityRes.data) {
+            sigmaValue.value = capabilityRes.data.sigma || 0
+        } else {
+            sigmaValue.value = 0
+        }
+    } catch (error) {
+        console.error('获取控制限和sigma数据失败:', error)
+        controlLimits.value = null
+        sigmaValue.value = 0
+    }
+}
+
+const judgeStatus = (value: number): '正常' | '警告' | '异常' => {
+    if (!controlLimits.value || sigmaValue.value === 0) return '正常'
+    const { ucl, cl, lcl } = controlLimits.value
+    const sigma = sigmaValue.value
+    if (value > ucl || value < lcl) return '异常'
+    if (value > cl + sigma || value < cl - sigma) return '警告'
+    return '正常'
+}
+
 // 获取测量数据
 const fetchMeasurements = async () => {
     if (!taskId.value) return
@@ -682,15 +724,7 @@ const fetchMeasurements = async () => {
                 groupMeans.push(mean)
                 groupRanges.push(range)
                 
-                // 根据USL/LSL计算状态
-                const usl = parseFloat(techList.value.usl) || 0
-                const lsl = parseFloat(techList.value.lsl) || 0
-                let status: '正常' | '警告' | '异常' = '正常'
-                if (mean > usl || mean < lsl) {
-                    status = '异常'
-                } else if (mean > usl - (usl - lsl) * 0.1 || mean < lsl + (usl - lsl) * 0.1) {
-                    status = '警告'
-                }
+                const status = judgeStatus(mean)
                 
                 return {
                     id: item.id?.toString() || `sample-${index + 1}`,
@@ -740,6 +774,7 @@ watch(()=>prop.selectedItem, async (val)=> {
   if (val && val._rawData?.id) {
     // 获取任务详情和测量数据
     await fetchTaskDetail()
+    await fetchControlLimitsAndSigma()
     await fetchMeasurements()
     saveOriginalData()
   } else if (isAddMode.value) {
@@ -909,40 +944,23 @@ const getDataPointClass = (row: SampleData, valueIndex: number) => {
   const value = row[`value${valueIndex + 1}` as keyof SampleData] as number
   if (value === null || value === undefined) return ''
 
-  const usl = parseFloat(techList.value.usl) || 0
-  const lsl = parseFloat(techList.value.lsl) || 0
+  if (!controlLimits.value || sigmaValue.value === 0) return ''
 
-  if (!usl && !lsl) return ''
-
-  // 超出规格限为异常
-  if (value > usl || value < lsl) {
-    return 'data-point-error'
-  }
-  // 在规格限的10%范围内为警告
-  const range = usl - lsl
-  const warningZone = range * 0.1
-  if (value > usl - warningZone || value < lsl + warningZone) {
-    return 'data-point-warning'
-  }
+  const status = judgeStatus(value)
+  if (status === '异常') return 'data-point-error'
+  if (status === '警告') return 'data-point-warning'
   return 'data-point-normal'
 }
 
 // 获取均值状态样式类
 const getMeanStatusClass = (mean: number) => {
   if (mean === null || mean === undefined) return ''
-  const usl = parseFloat(techList.value.usl) || 0
-  const lsl = parseFloat(techList.value.lsl) || 0
 
-  if (!usl && !lsl) return ''
+  if (!controlLimits.value || sigmaValue.value === 0) return ''
 
-  if (mean > usl || mean < lsl) {
-    return 'data-point-error'
-  }
-  const range = usl - lsl
-  const warningZone = range * 0.1
-  if (mean > usl - warningZone || mean < lsl + warningZone) {
-    return 'data-point-warning'
-  }
+  const status = judgeStatus(mean)
+  if (status === '异常') return 'data-point-error'
+  if (status === '警告') return 'data-point-warning'
   return 'data-point-normal'
 }
 
@@ -1031,12 +1049,7 @@ const confirmNewRow = (row: SampleData) => {
     return
   }
 
-  row.status =
-    row.mean > 50.06 || row.mean < 49.98
-      ? '异常'
-      : row.mean > 50.04 || row.mean < 50.0
-      ? '警告'
-      : '正常'
+  row.status = judgeStatus(row.mean)
 
   row.isNew = false
   row.datetime = formattedTime.value

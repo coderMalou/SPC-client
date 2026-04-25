@@ -240,7 +240,7 @@
     <div v-if="!hasNoData" class="info-card">
       <div class="header">
         <h3>最近数据点 (最近25个子组)</h3>
-        <el-button type="text" @click="viewAllData">查看全部数据 →</el-button>
+        <el-button type="text" @click="viewAllData">查看全部数据</el-button>
       </div>
       <div class="table-content">
         <el-table :data="recentData" style="width: 100%; table-layout: auto;">
@@ -723,7 +723,7 @@ const fetchControlChartData = async (taskId: number) => {
       })
 
       // 更新recentData - 从测量数据中获取样本值
-      recentData.value = subgroupData.value.map((d, index) => {
+      recentData.value = subgroupData.value.slice(-25).reverse().map((d, index) => {
         const meas = measurementData.find((m: any) => String(m.groupNo) === String(d.subgroupNo))
         const values = meas?.sampleValues || []
 
