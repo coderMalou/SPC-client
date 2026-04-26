@@ -371,7 +371,7 @@ const generateCaptcha = () => {
 
   // 绘制文字（每个字符随机颜色、大小、旋转角度）
   for (let i = 0; i < captcha.length; i++) {
-    drawText(ctx, captcha[i], i, contentWidth, contentHeight, captcha.length)
+    drawText(ctx, captcha[i]||'', i, contentWidth, contentHeight, captcha.length)
   }
 
   // 绘制干扰线和干扰点

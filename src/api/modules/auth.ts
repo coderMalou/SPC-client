@@ -52,7 +52,7 @@ export interface CompanyListResponse {
 }
 
 /**
- * 获取公司列表
+ * 获取公司列表（模拟数据，等待后续开发落实）
  * @returns Promise<CompanyListResponse>
  */
 export async function getCompanyList(): Promise<CompanyListResponse> {
