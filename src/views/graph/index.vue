@@ -244,16 +244,16 @@
       </div>
       <div class="table-content">
         <el-table :data="recentData" style="width: 100%; table-layout: auto;">
-          <el-table-column prop="subgroupNo" label="子组编号"/>
-          <el-table-column prop="sample1" label="样本1"/>
-          <el-table-column prop="sample2" label="样本2"/>
-          <el-table-column prop="sample3" label="样本3"/>
-          <el-table-column prop="sample4" label="样本4"/>
-          <el-table-column prop="sample5" label="样本5"/>
-          <el-table-column prop="mean" label="均值(X̄)"/>
-          <el-table-column prop="stdDev" label="标准差(σ)"/>
-          <el-table-column prop="range" label="极差(R)"/>
-          <el-table-column prop="inspectionTime" label="检测时间"/>
+          <el-table-column prop="subgroupNo" label="子组编号" align="center"/>
+          <el-table-column prop="sample1" label="样本1" align="center"/>
+          <el-table-column prop="sample2" label="样本2" align="center"/>
+          <el-table-column prop="sample3" label="样本3" align="center"/>
+          <el-table-column prop="sample4" label="样本4" align="center"/>
+          <el-table-column prop="sample5" label="样本5" align="center"/>
+          <el-table-column prop="mean" label="均值(X̄)" align="center"/>
+          <el-table-column prop="stdDev" label="标准差(σ)" align="center"/>
+          <el-table-column prop="range" label="极差(R)" align="center"/>
+          <el-table-column prop="inspectionTime" label="检测时间" align="center"/>
         </el-table>
       </div>
     </div>
@@ -652,6 +652,8 @@ const refreshData = async (): Promise<void> => {
   try {
     await fetchControlChartData(currentTaskId.value)
     await fetchCapabilityData(currentTaskId.value)
+    // 从工单树中恢复工单号，避免 API 返回的 orderNo 为空导致显示消失
+    basicInfo.value.workOrderNo = findWorkOrderId(currentTaskId.value)
     ElMessage.success('数据已刷新')
   } catch (error) {
     console.error('刷新数据失败:', error)

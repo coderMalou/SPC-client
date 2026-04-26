@@ -28,7 +28,7 @@
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工单号</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.ticket"></el-input>
+                    <el-input :disabled="!isEdit || isAddMode" v-model="selectedItem.ticket"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">行号</span>
@@ -102,17 +102,19 @@
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">组内样本量</span>
-                    <el-input :disabled="!isEdit" v-model="techList.set"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.set" type="number" min="5" max="25" step="1" />
+                    <span v-if="subgroupSizeError && isEdit" class="validation-error">{{ subgroupSizeError }}</span>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">总体样本量</span>
-                    <el-input :disabled="!isEdit" v-model="techList.total"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.total" type="number" min="5" step="1" />
+                    <span v-if="totalSampleSizeError && isEdit" class="validation-error">{{ totalSampleSizeError }}</span>
                 </div>
-                <!-- <div class="stat-card sub">
+                <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">作业设备编码</span>
                     <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div>
-                <div class="stat-card sub">
+                <!-- <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">仪器/治具编码</span>
                     <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div> -->
@@ -120,7 +122,8 @@
         </div>
         <div class="measure-table">
             <div class="stat-card header">
-                <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid || ""+`-${selectedItem.pname ?? ""}` }}</span>
+                <span v-if="!isAddMode" style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid || ""+`-${selectedItem.pname ?? ""}` }}</span>
+                <span v-else style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">测量数据表</span> 
                 <!-- PC端按钮布局 -->
                 <div v-if="!isMobile" style="display: flex; align-items: center; gap: 8px;">
                      <el-button type="primary" plain :disabled="!isEdit" @click="addNewRow">
@@ -196,73 +199,17 @@
                     </template>
                     </el-table-column>
 
-                    <!-- 五个样本值 -->
-                    <el-table-column prop="value1" label="值1" align="center">
+                    <!-- 动态样本值列 (根据组内样本量) -->
+                    <el-table-column v-for="colIdx in valueColumnIndexes" :key="colIdx" :label="'值' + (colIdx + 1)" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
-                        v-model.number="scope.row.value1"
+                        v-model.number="scope.row.values[colIdx]"
                         size="small"
                         @input="calcNewRow(scope.row)"
                         />
-                        <span v-else :class="getDataPointClass(scope.row, 0)">
-                        {{ scope.row.value1 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value2" label="值2" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value2"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 1)">
-                        {{ scope.row.value2 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value3" label="值3" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value3"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 2)">
-                        {{ scope.row.value3 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value4" label="值4" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value4"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 3)">
-                        {{ scope.row.value4 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value5" label="值5" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value5"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 4)">
-                        {{ scope.row.value5 }}
+                        <span v-else :class="getDataPointClass(scope.row, colIdx)">
+                        {{ scope.row.values[colIdx] }}
                         </span>
                     </template>
                     </el-table-column>
@@ -455,6 +402,27 @@ const isAddMode = computed(() => {
 // 保存任务处理函数
 const handleSave = async () => {
     try {
+        // 验证组内样本量
+        const ss = parseInt(techList.value.set)
+        if (techList.value.set !== '' && techList.value.set != null) {
+            if (isNaN(ss) || ss < 5 || ss > 25) {
+                ElMessage.error('组内样本量需在 5-25 之间')
+                return
+            }
+        }
+        // 验证总体样本量
+        const ts = parseInt(techList.value.total)
+        if (techList.value.total !== '' && techList.value.total != null) {
+            const effectiveSs = ss || 5
+            if (isNaN(ts) || ts < effectiveSs) {
+                ElMessage.error(`总体样本量不能小于组内样本量 (${effectiveSs})`)
+                return
+            }
+            if (ts % effectiveSs !== 0) {
+                ElMessage.error(`总体样本量必须是组内样本量 (${effectiveSs}) 的整倍数`)
+                return
+            }
+        }
         if (isAddMode.value) {
             // ===== 新增模式 =====
             const taskData: any = {
@@ -485,7 +453,7 @@ const handleSave = async () => {
             // 若有测量数据，批量创建
             if (sampleData.value.length > 0) {
                 const measurementItems = sampleData.value.map(row => ({
-                    sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                    sampleValues: row.values,
                     groupNo: parseInt(row.subgroupId) || undefined,
                     measureTime: row.datetime || undefined,
                     operator: row.operator || undefined,
@@ -548,14 +516,14 @@ const handleSave = async () => {
                     const originalRow = originalData.value?.sampleData?.find((r: any) => r.id === row.id)
                     if (originalRow) {
                         const currentForCompare = {
-                            sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                            sampleValues: row.values,
                             measureTime: row.datetime,
                             operator: row.operator,
                             remark: row.remark,
                             enabled: row.enabled ? 1 : 0,
                         }
                         const originalForCompare = {
-                            sampleValues: [originalRow.value1, originalRow.value2, originalRow.value3, originalRow.value4, originalRow.value5],
+                            sampleValues: originalRow.values,
                             measureTime: originalRow.datetime,
                             operator: originalRow.operator,
                             remark: originalRow.remark,
@@ -563,7 +531,7 @@ const handleSave = async () => {
                         }
                         if (JSON.stringify(currentForCompare) !== JSON.stringify(originalForCompare)) {
                             const updateRes = await updateMeasurement(String(row.id), {
-                                sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                                sampleValues: row.values,
                                 measureTime: row.datetime || undefined,
                                 operator: row.operator || undefined,
                                 remark: row.remark || undefined,
@@ -578,7 +546,7 @@ const handleSave = async () => {
                 } else {
                     // 新增行：收集到数组中
                     newMeasurementItems.push({
-                        sampleValues: [row.value1, row.value2, row.value3, row.value4, row.value5],
+                        sampleValues: row.values,
                         groupNo: parseInt(row.subgroupId) || undefined,
                         measureTime: row.datetime || undefined,
                         operator: row.operator || undefined,
@@ -715,26 +683,31 @@ const fetchMeasurements = async () => {
             const groupRanges: number[] = []
             
             sampleData.value = res.data.map((item: any, index: number) => {
-                const values = item.sampleValues || []
-                const mean = values.filter((v: number) => v != null).reduce((a: number, b: number) => a + b, 0) / (values.filter((v: number) => v != null).length || 1)
-                const range = values.filter((v: number) => v != null).length > 1
-                    ? Math.max(...values.filter((v: number) => v != null)) - Math.min(...values.filter((v: number) => v != null))
+                const rawValues = item.sampleValues || []
+                const n = subgroupSizeNum.value
+                // 根据组内样本量调整数组长度
+                const values: (number | null)[] = []
+                for (let i = 0; i < n; i++) {
+                    values.push(rawValues[i] != null ? rawValues[i] : null)
+                }
+                const validValues = values.filter((v: number | null): v is number => v != null)
+                const mean = validValues.length > 0
+                    ? validValues.reduce((a: number, b: number) => a + b, 0) / validValues.length
                     : 0
-                
+                const range = validValues.length > 1
+                    ? Math.max(...validValues) - Math.min(...validValues)
+                    : 0
+
                 groupMeans.push(mean)
                 groupRanges.push(range)
-                
+
                 const status = judgeStatus(mean)
-                
+
                 return {
                     id: item.id?.toString() || `sample-${index + 1}`,
                     subgroupId: item.groupNo?.toString() || `SG${100 + index + 1}`,
                     datetime: item.measureTime ? formatDateTime(item.measureTime) : '',
-                    value1: values[0] ?? null,
-                    value2: values[1] ?? null,
-                    value3: values[2] ?? null,
-                    value4: values[3] ?? null,
-                    value5: values[4] ?? null,
+                    values,
                     mean: parseFloat(mean.toFixed(2)),
                     range: parseFloat(range.toFixed(2)),
                     status,
@@ -802,19 +775,57 @@ interface SampleData {
   id: string
   subgroupId: string
   datetime: string
-  value1: number
-  value2: number
-  value3: number
-  value4: number
-  value5: number
-  mean: number
-  range: number
+  values: (number | null)[]
+  mean: number | null
+  range: number | null
   status: '正常' | '警告' | '异常'
   operator: string
   remark: string
   enabled: boolean
   isNew?: boolean
 }
+
+// 组内样本量数字计算属性
+const subgroupSizeNum = computed(() => {
+  const val = parseInt(techList.value.set)
+  if (isNaN(val) || val < 5) return 5
+  if (val > 25) return 25
+  return val
+})
+
+// 总体样本量数字计算属性
+const totalSampleSizeNum = computed(() => {
+  const val = parseInt(techList.value.total)
+  if (isNaN(val)) return Math.max(200, subgroupSizeNum.value)
+  return val
+})
+
+// 动态值列索引
+const valueColumnIndexes = computed(() => {
+  return Array.from({ length: subgroupSizeNum.value }, (_, i) => i)
+})
+
+// 组内样本量错误提示
+const subgroupSizeError = computed(() => {
+  const val = techList.value.set
+  if (val === '' || val == null) return ''
+  const num = parseInt(val)
+  if (isNaN(num)) return '请输入有效整数'
+  if (num < 5 || num > 25) return '组内样本量需在 5-25 之间'
+  return ''
+})
+
+// 总体样本量错误提示
+const totalSampleSizeError = computed(() => {
+  const val = techList.value.total
+  if (val === '' || val == null) return ''
+  const num = parseInt(val)
+  if (isNaN(num)) return '请输入有效整数'
+  const ss = parseInt(techList.value.set) || 5
+  if (num < ss) return `总体样本量不能小于组内样本量 (${ss})`
+  if (num % ss !== 0) return `总体样本量必须是组内样本量 (${ss}) 的整倍数`
+  return ''
+})
 
 // 响应式数据
 const sampleData = ref<SampleData[]>([])
@@ -941,7 +952,7 @@ const getRowClass = ({ row }: { row: SampleData }) => {
 
 // 获取数据点样式类
 const getDataPointClass = (row: SampleData, valueIndex: number) => {
-  const value = row[`value${valueIndex + 1}` as keyof SampleData] as number
+  const value = row.values[valueIndex] as number
   if (value === null || value === undefined) return ''
 
   if (!controlLimits.value || sigmaValue.value === 0) return ''
@@ -1001,13 +1012,9 @@ const addNewRow = () => {
             : 1
     ),
     datetime: '',
-    value1: null as any,
-    value2: null as any,
-    value3: null as any,
-    value4: null as any,
-    value5: null as any,
-    mean: null as any,
-    range: null as any,
+    values: new Array(subgroupSizeNum.value).fill(null),
+    mean: null,
+    range: null,
     status: '正常',
     operator: '',
     remark: '',
@@ -1018,12 +1025,15 @@ const addNewRow = () => {
 
 /* 自动算 X̄ / R */
 const calcNewRow = (row: SampleData) => {
-  const values = [row.value1, row.value2, row.value3, row.value4, row.value5]
-    .filter(v => typeof v === 'number') as number[]
+  const values = row.values.filter(v => typeof v === 'number') as number[]
+  const n = subgroupSizeNum.value
 
-  if (values.length === 5) {
-    row.mean = +(values.reduce((a, b) => a + b, 0) / 5).toFixed(2)
+  if (values.length === n && n > 0) {
+    row.mean = +(values.reduce((a, b) => a + b, 0) / n).toFixed(2)
     row.range = +(Math.max(...values) - Math.min(...values)).toFixed(2)
+  } else {
+    row.mean = null
+    row.range = null
   }
 }
 
@@ -1038,18 +1048,14 @@ const recalcOverall = () => {
 
 /* 确认新增 */
 const confirmNewRow = (row: SampleData) => {
-  if (
-    row.value1 == null ||
-    row.value2 == null ||
-    row.value3 == null ||
-    row.value4 == null ||
-    row.value5 == null
-  ) {
-    ElMessage.warning('请填写完整 5 个样本值')
+  const n = subgroupSizeNum.value
+  const hasAllValues = row.values.slice(0, n).every(v => v != null)
+  if (!hasAllValues) {
+    ElMessage.warning(`请填写完整 ${n} 个样本值`)
     return
   }
 
-  row.status = judgeStatus(row.mean)
+  row.status = judgeStatus(row.mean ?? 0)
 
   row.isNew = false
   row.datetime = formattedTime.value
@@ -1067,8 +1073,10 @@ const cancelNewRow = (id: string) => {
 /* ================= Excel 模板 ================= */
 
 const exportTemplate = () => {
+  const n = subgroupSizeNum.value
+  const valueHeaders = Array.from({ length: n }, (_, i) => `值${i + 1}`)
   const headers = [
-    ['样本组', '时间', '值1', '值2', '值3', '值4', '值5', '操作员', '备注']
+    ['样本组', '时间', ...valueHeaders, '操作员', '备注']
   ]
   const sheet = XLSX.utils.aoa_to_sheet(headers)
   const wb = XLSX.utils.book_new()
@@ -1108,33 +1116,27 @@ const handleFile = (e: Event) => {
     const rows: any[] = XLSX.utils.sheet_to_json(sheet)
 
     rows.forEach((r, i) => {
-      const values = [r['值1'], r['值2'], r['值3'], r['值4'], r['值5']]
-      const mean = values.reduce((a, b) => a + b, 0) / 5
-      const range = Math.max(...values) - Math.min(...values)
-      let status: '正常' | '警告' | '异常' = '正常'
-      if (mean > 50.06 || mean < 49.98) {
-        status = '异常'
-      } else if (mean > 50.04 || mean < 50.00) {
-        status = '警告'
+      const n = subgroupSizeNum.value
+      const values: (number | null)[] = []
+      for (let j = 0; j < n; j++) {
+        const v = r[`值${j + 1}`]
+        values.push(v != null ? v : null)
       }
-      
-      const remark = status === '正常' ? '' : '需关注'
+      const validValues = values.filter((v): v is number => v != null)
+      const mean = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0
+      const range = validValues.length > 1 ? Math.max(...validValues) - Math.min(...validValues) : 0
 
       sampleData.value = [
         {
         id: `import-${Date.now()}-${i}`,
         subgroupId: r['样本组'],
         datetime: formatTimeStamp(r['时间']),
-        value1: r['值1'],
-        value2: r['值2'],
-        value3: r['值3'],
-        value4: r['值4'],
-        value5: r['值5'],
+        values,
         mean: +mean.toFixed(2),
         range: +range.toFixed(2),
-        status: r['状态'] ?? status,
+        status: r['状态'] ?? '正常',
         operator: r['操作员'],
-        remark: r['备注'] ?? remark
+        remark: r['备注'] ?? ''
       } as SampleData,
       ...sampleData.value
       ]
@@ -1148,20 +1150,22 @@ const handleFile = (e: Event) => {
 /* ================= Excel 导出 ================= */
 
 const exportExcel = () => {
-  const rows = sampleData.value.map(r => ({
-    样本组: r.subgroupId,
-    时间: r.datetime,
-    值1: r.value1,
-    值2: r.value2,
-    值3: r.value3,
-    值4: r.value4,
-    值5: r.value5,
-    均值: r.mean,
-    极差: r.range,
-    状态: r.status,
-    操作员: r.operator,
-    备注: r.remark
-  }))
+  const rows = sampleData.value.map(r => {
+    const row: any = {
+      样本组: r.subgroupId,
+      时间: r.datetime,
+    }
+    const n = subgroupSizeNum.value
+    for (let i = 0; i < n; i++) {
+      row[`值${i + 1}`] = r.values[i]
+    }
+    row.均值 = r.mean
+    row.极差 = r.range
+    row.状态 = r.status
+    row.操作员 = r.operator
+    row.备注 = r.remark
+    return row
+  })
 
   const sheet = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
@@ -1171,7 +1175,34 @@ const exportExcel = () => {
   saveAs(new Blob([buffer]), '测量数据表.xlsx')
 }
 
-// 初始化
+// 监听组内样本量变化，调整已有数据
+watch(() => techList.value.set, (newVal, oldVal) => {
+  if (newVal && oldVal && newVal !== oldVal && !isAddMode.value) {
+    const newSize = parseInt(newVal)
+    if (newSize >= 5 && newSize <= 25 && sampleData.value.length > 0) {
+      sampleData.value.forEach(row => {
+        if (row.values.length < newSize) {
+          row.values = [...row.values, ...new Array(newSize - row.values.length).fill(null)]
+        } else if (row.values.length > newSize) {
+          row.values = row.values.slice(0, newSize)
+        }
+      })
+      // 重新计算均值和极差
+      sampleData.value.forEach(row => {
+        const validValues = row.values.filter((v): v is number => v != null)
+        if (validValues.length > 0) {
+          const mean = validValues.reduce((a, b) => a + b, 0) / validValues.length
+          row.mean = parseFloat(mean.toFixed(2))
+          row.range = validValues.length > 1
+            ? parseFloat((Math.max(...validValues) - Math.min(...validValues)).toFixed(2))
+            : 0
+          row.status = judgeStatus(mean)
+        }
+      })
+      recalcOverall()
+    }
+  }
+}, { immediate: false })
 onMounted(() => {
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
@@ -1532,5 +1563,13 @@ defineExpose({ checkUnsavedChanges })
       padding: 6px 10px;
     }
   }
+}
+
+// 验证错误提示
+.validation-error {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.2;
 }
 </style>
