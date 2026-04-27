@@ -43,14 +43,18 @@ req.interceptors.response.use(
 
     (error) => {
         if (error.response?.status === 401) {
-            ElMessage.error('登录已过期，请重新登录')
-            // 动态导入避免循环依赖
-            import('@/stores/user').then(({ userStore }) => {
-                const store = userStore()
-                store.logout()
-            })
-            // 跳转到登录页
-            window.location.href = '/login'
+            // 登录过期处理方法
+            const isLoginRequest = error.config?.url?.includes('/auth/login')
+            if (!isLoginRequest) {
+                ElMessage.error('登录已过期，请重新登录')
+                // 动态导入避免循环依赖
+                import('@/stores/user').then(({ userStore }) => {
+                    const store = userStore()
+                    store.logout()
+                })
+                // 跳转到登录页
+                window.location.href = '/login'
+            }
         }
         return Promise.reject(error)
     }

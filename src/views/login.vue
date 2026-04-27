@@ -468,7 +468,7 @@ const handleLogin = async () => {
         if (error.response) {
             console.error('[Login] 响应状态:', error.response.status)
             console.error('[Login] 响应数据:', error.response.data)
-            message.error(`登录失败: ${error.response.status} - ${error.message}`)
+            message.error(error.response.data?.msg || '登录失败')
         } else if (error.request) {
             console.error('[Login] 请求未收到响应')
             message.error('网络错误：无法连接到服务器，请检查后端服务是否启动')
