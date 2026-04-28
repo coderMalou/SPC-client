@@ -9,7 +9,7 @@
                 <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">{{ isAddMode ? '新增任务' : '任务详情' }}</span>
             </div>
             <div style="display: flex; gap: 10px;">
-                <el-button type="primary" v-if="isEdit" @click="handleSave">
+                <el-button type="primary" v-if="isEdit" @click="handleSaveDebounced">
                     <span style="font-size: 18px;">保存任务</span>
                 </el-button>
                 <el-button @click="$emit('close')">
@@ -23,36 +23,36 @@
             <div class="divider"></div>
             <div class="stat-card content">
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工作任务号</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.tid"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工作任务号</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.tid" placeholder="请输入工作任务号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工单号</span>
-                    <el-input :disabled="!isEdit || isAddMode" v-model="selectedItem.ticket"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工单号</span>
+                    <el-input :disabled="!isEdit || isAddMode" v-model="selectedItem.ticket" placeholder="请输入工单号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">行号</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.line"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>行号</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.line" placeholder="请输入行号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">产品编码</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.pid"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>产品编码</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pid" placeholder="请输入产品编码"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">产品名称</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.pname"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>产品名称</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pname" placeholder="请输入产品名称"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">规格/型号</span>
-                    <el-input :disabled="!isEdit" v-model="spec"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>规格/型号</span>
+                    <el-input :disabled="!isEdit" v-model="spec" placeholder="请输入规格/型号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">计量单位</span>
-                    <el-input :disabled="!isEdit" v-model="unit"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>计量单位</span>
+                    <el-input :disabled="!isEdit" v-model="unit" placeholder="请输入计量单位"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工艺路线名称</span>
-                    <el-input :disabled="!isEdit" v-model="technic"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工艺路线名称</span>
+                    <el-input :disabled="!isEdit" v-model="technic" placeholder="请输入工艺路线名称"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">创建时间</span>
@@ -77,37 +77,37 @@
             </div>
             <div class="stat-card content">
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工序序号</span>
-                    <el-input :disabled="!isEdit" v-model="techList.techid"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工序序号</span>
+                    <el-input :disabled="!isEdit" v-model="techList.techid" placeholder="请输入工序序号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工序作业名称</span>
-                    <el-input :disabled="!isEdit" v-model="techList.techname"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工序作业名称</span>
+                    <el-input :disabled="!isEdit" v-model="techList.techname" placeholder="请输入工序作业名称"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">质量特性</span>
-                    <el-input :disabled="!isEdit" v-model="techList.ch"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>质量特性</span>
+                    <el-input :disabled="!isEdit" v-model="techList.ch" placeholder="请输入质量特性"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">目标标准值</span>
-                    <el-input :disabled="!isEdit" v-model="techList.standard"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>目标标准值</span>
+                    <el-input :disabled="!isEdit" v-model="techList.standard" placeholder="请输入目标标准值"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">USL</span>
-                    <el-input :disabled="!isEdit" v-model="techList.usl"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>USL</span>
+                    <el-input :disabled="!isEdit" v-model="techList.usl" placeholder="请输入USL"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">LSL</span>
-                    <el-input :disabled="!isEdit" v-model="techList.lsl"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>LSL</span>
+                    <el-input :disabled="!isEdit" v-model="techList.lsl" placeholder="请输入LSL"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">组内样本量</span>
-                    <el-input :disabled="!isEdit" v-model="techList.set" type="number" min="5" max="25" step="1" />
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>组内样本量</span>
+                    <el-input :disabled="!isEdit" v-model="techList.set" type="number" min="5" max="25" step="1" placeholder="5-25" />
                     <span v-if="subgroupSizeError && isEdit" class="validation-error">{{ subgroupSizeError }}</span>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">总体样本量</span>
-                    <el-input :disabled="!isEdit" v-model="techList.total" type="number" min="5" step="1" />
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>总体样本量</span>
+                    <el-input :disabled="!isEdit" v-model="techList.total" type="number" min="5" step="1" placeholder="组内样本量的整倍数" />
                     <span v-if="totalSampleSizeError && isEdit" class="validation-error">{{ totalSampleSizeError }}</span>
                 </div>
                 <div class="stat-card sub">
@@ -334,6 +334,7 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useTime } from '@/utils/clock';
 import { formatTimeStamp } from '@/utils/functions';
+import { useDebounceFn } from '@/utils/functions';
 import { getTaskDetail, getMeasurements, createTask, createMeasurementBatch, updateTask, updateMeasurement, updateTaskStatus, getControlChart, getCapability } from '@/api/modules';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
@@ -399,9 +400,41 @@ const prop = defineProps<{
 const isAddMode = computed(() => {
     return prop.isEdit && (!prop.selectedItem?._rawData?.id)
 })
-// 保存任务处理函数
+// 必填字段验证（除作业设备编码外均为必填）
+const validateRequired = () => {
+    const fields: { label: string; value: any }[] = [
+        { label: '工作任务号', value: prop.selectedItem.tid },
+        { label: '工单号', value: prop.selectedItem.ticket },
+        { label: '行号', value: prop.selectedItem.line },
+        { label: '产品编码', value: prop.selectedItem.pid },
+        { label: '产品名称', value: prop.selectedItem.pname },
+        { label: '规格/型号', value: spec.value },
+        { label: '计量单位', value: unit.value },
+        { label: '工艺路线名称', value: technic.value },
+        { label: '工序序号', value: techList.value.techid },
+        { label: '工序作业名称', value: techList.value.techname },
+        { label: '质量特性', value: techList.value.ch },
+        { label: '目标标准值', value: techList.value.standard },
+        { label: '组内样本量', value: techList.value.set },
+        { label: '总体样本量', value: techList.value.total },
+        { label: 'USL', value: techList.value.usl },
+        { label: 'LSL', value: techList.value.lsl },
+    ]
+    for (const field of fields) {
+        if (field.value === '' || field.value == null || field.value === undefined) {
+            ElMessage.error(`请填写必填字段：${field.label}`)
+            return false
+        }
+    }
+    return true
+}
+
+// 保存任务处理函数（防抖包装）
 const handleSave = async () => {
     try {
+        // 必填字段验证
+        if (!validateRequired()) return
+
         // 验证组内样本量
         const ss = parseInt(techList.value.set)
         if (techList.value.set !== '' && techList.value.set != null) {
@@ -586,6 +619,9 @@ const handleSave = async () => {
     }
 }
 const emit = defineEmits(['close','change', 'save'])
+
+// 防抖保存
+const handleSaveDebounced = useDebounceFn(handleSave, 500)
 
 const spec = ref('')
 const unit = ref('')
@@ -1571,5 +1607,12 @@ defineExpose({ checkUnsavedChanges })
   font-size: 12px;
   margin-top: 2px;
   line-height: 1.2;
+}
+
+// 必填字段标记
+.required {
+  color: #ff4d4f;
+  margin-right: 2px;
+  font-weight: bold;
 }
 </style>

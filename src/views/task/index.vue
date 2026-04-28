@@ -200,7 +200,7 @@
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="isShowDialog = false">取消</el-button>
-                    <el-button type="primary" @click="handleWorkOrderStatusChange">确认</el-button>
+                    <el-button type="primary" @click="handleWorkOrderStatusChangeDebounced">确认</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -213,7 +213,7 @@
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="deletDialog = false">取消</el-button>
-                    <el-button type="primary" @click="handleDelete(currentMission)">确认</el-button>
+                    <el-button type="primary" @click="handleDeleteDebounced(currentMission)">确认</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -262,6 +262,7 @@ import powerOff from '@/components/icons/powerOff.vue';
 import exportIcon from '@/components/icons/exportIcon.vue';
 import copyIcon from '@/components/icons/copyIcon.vue';
 import plusIcon from '@/components/icons/plusIcon.vue';
+import { useDebounceFn } from '@/utils/functions';
 
 // 左侧工单列表显示控制
 const isShowTaskNo = ref(true)
@@ -798,6 +799,10 @@ const handleStatusChange = async () => {
         ElMessage.error('状态切换失败')
     }
 }
+
+// 防抖包装
+const handleWorkOrderStatusChangeDebounced = useDebounceFn(handleWorkOrderStatusChange, 500)
+const handleDeleteDebounced = useDebounceFn(handleDelete, 500)
 
 // 初始化
 onMounted(async () => {

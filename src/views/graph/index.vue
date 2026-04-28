@@ -25,7 +25,7 @@
         </el-button>
 
         <!-- 刷新按钮 -->
-        <el-button @click="refreshData" :loading="loading">
+        <el-button @click="refreshDataDebounced" :loading="loading">
           <i class="el-icon-refresh"></i>
           刷新
         </el-button>
@@ -273,6 +273,7 @@ const route = useRoute()
 
 // 导入 API模块
 import { getControlChart, getCapability, getWorkOrderTree, getMeasurements } from '@/api/modules/index';
+import { useDebounceFn } from '@/utils/functions';
 
 // 基本信息接口
 interface BasicInfo {
@@ -662,6 +663,9 @@ const refreshData = async (): Promise<void> => {
     loading.value = false
   }
 }
+
+// 防抖刷新
+const refreshDataDebounced = useDebounceFn(refreshData, 500)
 
 // 获取控制图数据
 const fetchControlChartData = async (taskId: number) => {

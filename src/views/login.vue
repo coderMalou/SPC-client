@@ -77,7 +77,7 @@
               size="large"
               :loading="loading"
               attr-type="button"
-              @click="handleLogin"
+              @click="handleLoginDebounced"
             >
               {{ loading ? '登录中...' : '登 录' }}
             </n-button>
@@ -97,6 +97,7 @@ import storage from '@/utils/storage'
 import { useRouter } from 'vue-router'
 import { login } from '@/api/modules/auth.ts'
 import { ElMessage } from 'element-plus'
+import { useDebounceFn } from '@/utils/functions'
 
 const router = useRouter()
 const message = useMessage()
@@ -480,6 +481,9 @@ const handleLogin = async () => {
         loading.value = false
     }
 }
+
+// 防抖登录
+const handleLoginDebounced = useDebounceFn(handleLogin, 500)
 
 // 组件挂载时初始化
 onMounted(() => {
