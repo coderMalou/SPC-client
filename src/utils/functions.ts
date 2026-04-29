@@ -12,11 +12,11 @@ export function formatTimeStamp(date:Date) {
 
 /**
  * @param fn 要执行的函数
- * @param delay 延迟时间（毫秒），默认 500ms
+ * @param delay 延迟时间（毫秒），默认 300ms
  */
 export function useDebounceFn<T extends (...args: any[]) => any>(
   fn: T,
-  delay: number = 500
+  delay: number = 300
 ): (...args: Parameters<T>) => void {
   let timer: ReturnType<typeof setTimeout> | null = null
 
@@ -40,11 +40,11 @@ export function useDebounceFn<T extends (...args: any[]) => any>(
 
 /**
  * @param fn 要执行的函数
- * @param delay 间隔时间（毫秒），默认 500ms
+ * @param delay 间隔时间（毫秒），默认 300ms
  */
 export function useThrottleFn<T extends (...args: any[]) => any>(
   fn: T,
-  delay: number = 500
+  delay: number = 300
 ): (...args: Parameters<T>) => void {
   let lastTime = 0
 
