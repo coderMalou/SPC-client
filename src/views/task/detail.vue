@@ -9,7 +9,7 @@
                 <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">{{ isAddMode ? '新增任务' : '任务详情' }}</span>
             </div>
             <div style="display: flex; gap: 10px;">
-                <el-button type="primary" v-if="isEdit" @click="handleSaveDebounced">
+                <el-button type="primary" v-if="isEdit" :loading="saving" @click="handleSaveDebounced">
                     <span style="font-size: 18px;">保存任务</span>
                 </el-button>
                 <el-button @click="$emit('close')">
@@ -78,27 +78,27 @@
             <div class="stat-card content">
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>工序序号</span>
-                    <el-input :disabled="!isEdit" v-model="techList.techid" placeholder="请输入工序序号"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.techid" type="number" step="1" placeholder="请输入工序序号"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>工序作业名称</span>
-                    <el-input :disabled="!isEdit" v-model="techList.techname" placeholder="请输入工序作业名称"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.techname" placeholder="请输入工序作业名称" maxlength="100"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>质量特性</span>
-                    <el-input :disabled="!isEdit" v-model="techList.ch" placeholder="请输入质量特性"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.ch" placeholder="请输入质量特性" maxlength="100"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>目标标准值</span>
-                    <el-input :disabled="!isEdit" v-model="techList.standard" placeholder="请输入目标标准值"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.standard" type="number" step="0.000001" placeholder="请输入目标标准值"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>USL</span>
-                    <el-input :disabled="!isEdit" v-model="techList.usl" placeholder="请输入USL"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.usl" type="number" step="0.000001" placeholder="请输入USL"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>LSL</span>
-                    <el-input :disabled="!isEdit" v-model="techList.lsl" placeholder="请输入LSL"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.lsl" type="number" step="0.000001" placeholder="请输入LSL"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>组内样本量</span>
@@ -429,11 +429,14 @@ const validateRequired = () => {
     return true
 }
 
+const saving = ref(false)
+
 // 保存任务处理函数（防抖包装）
 const handleSave = async () => {
+    // 必填字段验证
+    if (!validateRequired()) return
+    saving.value = true
     try {
-        // 必填字段验证
-        if (!validateRequired()) return
 
         // 验证组内样本量
         const ss = parseInt(techList.value.set)
@@ -460,9 +463,12 @@ const handleSave = async () => {
             // ===== 新增模式 =====
             const taskData: any = {
                 workOrderId: prop.selectedItem.workOrderId,
+                taskNo: prop.selectedItem.tid,
+                lineNo: prop.selectedItem.line != null ? parseInt(String(prop.selectedItem.line)) : undefined,
                 productCode: prop.selectedItem.pid,
                 productName: prop.selectedItem.pname,
                 processName: techList.value.techname,
+                processSequence: techList.value.techid,
                 spec: spec.value,
                 unit: unit.value,
                 processRouteName: technic.value,
@@ -477,7 +483,7 @@ const handleSave = async () => {
             }
 
             const result = await createTask(taskData)
-            if (result.code !== 200) {
+            if (result.code >= 400) {
                 ElMessage.error(result.message || result.msg || '创建任务失败')
                 return
             }
@@ -493,7 +499,7 @@ const handleSave = async () => {
                     remark: row.remark || undefined,
                 }))
                 const batchRes = await createMeasurementBatch(String(newTaskId), measurementItems)
-                if (batchRes.code !== 200) {
+                if (batchRes.code >= 400) {
                     ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
                     return
                 }
@@ -506,7 +512,7 @@ const handleSave = async () => {
             // 刷新页面数据（新增模式无法用 taskId computed 刷新，直接跳过）
             // 通知父组件
             emit('save', { mode: 'create', taskId: newTaskId })
-            ElMessage.success('任务创建成功')
+            ElMessage.success(result.msg || '任务创建成功')
         } else {
             // ===== 编辑模式 =====
             const taskId = prop.selectedItem._rawData?.id
@@ -521,6 +527,7 @@ const handleSave = async () => {
                 productCode: prop.selectedItem.pid,
                 productName: prop.selectedItem.pname,
                 processName: techList.value.techname,
+                processSequence: techList.value.techid,
                 spec: spec.value,
                 unit: unit.value,
                 processRouteName: technic.value,
@@ -536,7 +543,7 @@ const handleSave = async () => {
 
             // 更新任务基本信息
             const res = await updateTask(String(taskId), updateData)
-            if (res.code !== 200) {
+            if (res.code >= 400) {
                 ElMessage.error(res.message || res.msg || '更新任务失败')
                 return
             }
@@ -570,7 +577,7 @@ const handleSave = async () => {
                                 remark: row.remark || undefined,
                                 enabled: row.enabled ? 1 : 0,
                             })
-                            if (updateRes.code !== 200) {
+                            if (updateRes.code >= 400) {
                                 ElMessage.error(updateRes.message || updateRes.msg || '更新测量数据失败')
                                 return
                             }
@@ -592,7 +599,7 @@ const handleSave = async () => {
             // 批量创建新增的测量数据
             if (newMeasurementItems.length > 0) {
                 const batchRes = await createMeasurementBatch(String(taskId), newMeasurementItems)
-                if (batchRes.code !== 200) {
+                if (batchRes.code >= 400) {
                     ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
                     return
                 }
@@ -611,11 +618,27 @@ const handleSave = async () => {
 
             // 通知父组件
             emit('save', { mode: 'update', taskId })
-            ElMessage.success('任务更新成功')
+            ElMessage.success(res.msg || '任务更新成功')
         }
     } catch (error: any) {
         console.error('保存失败:', error)
-        ElMessage.error('保存失败: ' + (error.message || '未知错误'))
+        const status = error.response?.status
+        const apiMsg = error.response?.data?.msg || error.response?.data?.message
+        if (apiMsg) {
+            ElMessage.error(apiMsg)
+        } else if (status === 400) {
+            ElMessage.error('请求参数有误，请检查必填字段')
+        } else if (status === 404) {
+            ElMessage.error('任务不存在，请刷新后重试')
+        } else if (status === 500) {
+            ElMessage.error('服务器内部错误，请稍后重试')
+        } else if (error.message?.includes('timeout')) {
+            ElMessage.error('请求超时，请检查网络连接')
+        } else {
+            ElMessage.error('保存失败: ' + (error.message || '未知错误'))
+        }
+    } finally {
+        saving.value = false
     }
 }
 const emit = defineEmits(['close','change', 'save'])
@@ -655,7 +678,7 @@ const fetchTaskDetail = async () => {
             unit.value = data.unit || ''
             technic.value = data.processRouteName || ''
             techList.value = {
-                techid: data.processName || '',
+                techid: data.processSequence || '',
                 techname: data.processName || '',
                 ch: data.qualityChar || '',
                 standard: data.targetValue?.toString() || '',
@@ -861,6 +884,49 @@ const totalSampleSizeError = computed(() => {
   if (num < ss) return `总体样本量不能小于组内样本量 (${ss})`
   if (num % ss !== 0) return `总体样本量必须是组内样本量 (${ss}) 的整倍数`
   return ''
+})
+
+// 防重复警告标记
+let lastSubgroupWarning = ''
+let lastTotalWarning = ''
+
+// 实时验证警告：组内样本量不符合要求时弹出
+watch(() => techList.value.set, (val) => {
+  if (val === '' || val == null) return
+  const num = parseInt(val)
+  if (isNaN(num)) return
+  if (num < 5 || num > 25) {
+    const msg = '组内样本量需在 5-25 之间'
+    if (msg !== lastSubgroupWarning) {
+      ElMessage.warning(msg)
+      lastSubgroupWarning = msg
+    }
+  } else {
+    lastSubgroupWarning = ''
+  }
+})
+
+// 实时验证警告：总体样本量不符合要求时弹出
+watch(() => techList.value.total, (val) => {
+  if (val === '' || val == null) return
+  const num = parseInt(val)
+  if (isNaN(num)) return
+  const ss = parseInt(techList.value.set) || 5
+  if (num < ss) {
+    const msg = `总体样本量不能小于组内样本量 (${ss})`
+    if (msg !== lastTotalWarning) {
+      ElMessage.warning(msg)
+      lastTotalWarning = msg
+    }
+  } else if (num % ss !== 0) {
+    const msg = `总体样本量必须是组内样本量 (${ss}) 的整倍数`
+    if (msg !== lastTotalWarning) {
+      ElMessage.warning(msg)
+      lastTotalWarning = msg
+    }
+  } else {
+    lastTotalWarning = ''
+  }
 })
 
 // 响应式数据

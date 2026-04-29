@@ -28,6 +28,7 @@ interface Task {
     unit: string
     processRouteName: string
     processName: string
+    processSequence: string
     qualityChar: string
     targetValue: number
     usl: number
@@ -87,6 +88,7 @@ interface CreateTaskData {
     unit?: string
     processRouteName?: string
     processName?: string
+    processSequence?: string
     qualityChar?: string
     targetValue?: number
     usl?: number
