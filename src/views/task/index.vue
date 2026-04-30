@@ -232,7 +232,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { showSuccess, showError, showWarning } from '@/utils/message'
+import { ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { getWorkOrders, getTasks, enableWorkOrder, closeWorkOrder, deleteTask, updateTaskStatus, getTaskDetail } from '@/api/modules';
@@ -376,7 +377,7 @@ const fetchWorkOrders = async () => {
         }
     } catch (error) {
         console.error('获取工单列表失败:', error)
-        ElMessage.error('获取工单列表失败')
+        showError('获取工单列表失败')
     }
 }
 
@@ -408,7 +409,7 @@ const fetchTasks = async (workOrderId?: number) => {
         }
     } catch (error) {
         console.error('获取任务列表失败:', error)
-        ElMessage.error('获取任务列表失败')
+        showError('获取任务列表失败')
     } finally {
         loading.value = false
     }
@@ -554,7 +555,7 @@ const handleWorkOrderStatusChange = async () => {
     try {
         const ticketId = String(currentTicket.value?.id)
         if (!ticketId || ticketId === 'undefined') {
-            ElMessage.error('工单ID不存在')
+            showError('工单ID不存在')
             return
         }
 
@@ -571,10 +572,10 @@ const handleWorkOrderStatusChange = async () => {
             taskNoList.value[index].status = currentTicket.value.status
         }
 
-        ElMessage.success(currentTicket.value.status === 1 ? '工单已开启' : '工单已关闭')
+        showSuccess(currentTicket.value.status === 1 ? '工单已开启' : '工单已关闭')
     } catch (error) {
         console.error('工单状态更新失败:', error)
-        ElMessage.error('工单状态更新失败')
+        showError('工单状态更新失败')
     } finally {
         isShowDialog.value = false
     }
@@ -593,7 +594,7 @@ const handleSaveTask = async (taskData: any) => {
         }
     } catch (error) {
         console.error('刷新任务列表失败:', error)
-        ElMessage.error('刷新任务列表失败')
+        showError('刷新任务列表失败')
     } finally {
         // 关闭详情页
         isShowDetails.value = false
@@ -621,7 +622,7 @@ const handleDelete = async (row: any) => {
     try {
         const taskId = row._rawData?.id
         if (!taskId) {
-            ElMessage.error('任务ID不存在，无法删除')
+            showError('任务ID不存在，无法删除')
             return
         }
         await deleteTask(String(taskId))
@@ -632,10 +633,10 @@ const handleDelete = async (row: any) => {
         } else {
             await fetchTasks()
         }
-        ElMessage.success('任务已删除')
+        showSuccess('任务已删除')
     } catch (error) {
         console.error('删除失败:', error)
-        ElMessage.error('删除失败')
+        showError('删除失败')
     } finally {
         deletDialog.value = false
     }
@@ -666,7 +667,7 @@ const handleCurrentChange = (page: number) => {
 // 导出
 const handleExport = () => {
     if (selectedData.value.length === 0) {
-        ElMessage.warning('请先选择要导出的数据')
+        showWarning('请先选择要导出的数据')
         return
     }
     
@@ -720,18 +721,18 @@ const handleExport = () => {
         const fileName = `任务列表_${timestamp}.xlsx`
         XLSX.writeFile(workbook, fileName)
         
-        ElMessage.success(`成功导出 ${selectedData.value.length} 条数据`)
+        showSuccess(`成功导出 ${selectedData.value.length} 条数据`)
         
     } catch (error) {
         console.error('导出Excel失败:', error)
-        ElMessage.error('导出失败，请重试')
+        showError('导出失败，请重试')
     }
 }
 
 // 复制
 const handleCopy = async () => {
     if (selectedData.value.length === 0) {
-        ElMessage.warning('请先选择要复制的数据')
+        showWarning('请先选择要复制的数据')
         return
     }
     
@@ -761,18 +762,18 @@ const handleCopy = async () => {
                 document.execCommand('copy')
             } catch (err) {
                 console.error('复制失败:', err)
-                ElMessage.error('复制失败，请重试')
+                showError('复制失败，请重试')
                 return
             }
             
             document.body.removeChild(textArea)
         }
         
-        ElMessage.success(`成功复制 ${selectedData.value.length} 条数据到剪切板`)
+        showSuccess(`成功复制 ${selectedData.value.length} 条数据到剪切板`)
         
     } catch (error) {
         console.error('复制到剪切板失败:', error)
-        ElMessage.error('复制失败，请重试')
+        showError('复制失败，请重试')
     }
 }
 
@@ -780,7 +781,7 @@ const handleStatusChange = async () => {
     try {
         const taskId = selectedItem.value?._rawData?.id
         if (!taskId) {
-            ElMessage.error('任务ID不存在，无法切换状态')
+            showError('任务ID不存在，无法切换状态')
             return
         }
         const curStatus = selectedItem.value?.status
@@ -793,10 +794,10 @@ const handleStatusChange = async () => {
         } else {
             await fetchTasks()
         }
-        ElMessage.success(newStatus === 1 ? '任务已启用' : '任务已停用')
+        showSuccess(newStatus === 1 ? '任务已启用' : '任务已停用')
     } catch (error) {
         console.error('状态切换失败:', error)
-        ElMessage.error('状态切换失败')
+        showError('状态切换失败')
     }
 }
 

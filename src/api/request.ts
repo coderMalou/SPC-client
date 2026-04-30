@@ -1,6 +1,6 @@
 import axios from 'axios'
 import storage from '@/utils/storage'
-import { ElMessage } from 'element-plus'
+import { showError } from '@/utils/message'
 
 const req = axios.create({
     timeout: 3000,
@@ -46,7 +46,7 @@ req.interceptors.response.use(
             // 登录过期处理方法
             const isLoginRequest = error.config?.url?.includes('/auth/login')
             if (!isLoginRequest) {
-                ElMessage.error('登录已过期，请重新登录')
+                showError('登录已过期，请重新登录')
                 // 动态导入避免循环依赖
                 import('@/stores/user').then(({ userStore }) => {
                     const store = userStore()

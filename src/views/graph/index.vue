@@ -264,7 +264,8 @@
 import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsOption, SeriesOption } from 'echarts'
-import { ElMessage, ElButton, ElTag, ElTooltip, ElTable, ElTableColumn, ElCascader } from 'element-plus'
+import { showSuccess, showError, showWarning } from '@/utils/message'
+import { ElButton, ElTag, ElTooltip, ElTable, ElTableColumn, ElCascader } from 'element-plus'
 import html2canvas from 'html2canvas'
 
 import { useRouter, useRoute } from 'vue-router';
@@ -451,7 +452,7 @@ const handleWorkOrderTaskChange = async (value: any) => {
         })
       } catch (error) {
         console.error('获取数据失败:', error)
-        ElMessage.error('获取数据失败')
+        showError('获取数据失败')
       } finally {
         loading.value = false
       }
@@ -645,7 +646,7 @@ const exportImage = async () => {
 
 const refreshData = async (): Promise<void> => {
   if (!currentTaskId.value) {
-    ElMessage.warning('请先选择任务')
+    showWarning('请先选择任务')
     return
   }
 
@@ -655,10 +656,10 @@ const refreshData = async (): Promise<void> => {
     await fetchCapabilityData(currentTaskId.value)
     // 从工单树中恢复工单号，避免 API 返回的 orderNo 为空导致显示消失
     basicInfo.value.workOrderNo = findWorkOrderId(currentTaskId.value)
-    ElMessage.success('数据已刷新')
+    showSuccess('数据已刷新')
   } catch (error) {
     console.error('刷新数据失败:', error)
-    ElMessage.error('刷新数据失败')
+    showError('刷新数据失败')
   } finally {
     loading.value = false
   }

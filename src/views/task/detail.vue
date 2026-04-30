@@ -308,7 +308,7 @@
                     <el-pagination
                         v-model:current-page="currentPage"
                         v-model:page-size="pageSize"
-                        :page-sizes="[10, 20, 50, 100]"
+                        :page-sizes="[5, 10, 20, 50, 100]"
                         :small="true"
                         :disabled="false"
                         :background="true"
@@ -325,7 +325,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, reactive, nextTick } from 'vue'
-import { ElMessage } from 'element-plus';
+import { showSuccess, showError, showWarning, showInfo } from '@/utils/message';
 import { MoreFilled } from '@element-plus/icons-vue';
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
@@ -422,7 +422,7 @@ const validateRequired = () => {
     ]
     for (const field of fields) {
         if (field.value === '' || field.value == null || field.value === undefined) {
-            ElMessage.error(`请填写必填字段：${field.label}`)
+            showError(`请填写必填字段：${field.label}`)
             return false
         }
     }
@@ -442,7 +442,7 @@ const handleSave = async () => {
         const ss = parseInt(techList.value.set)
         if (techList.value.set !== '' && techList.value.set != null) {
             if (isNaN(ss) || ss < 5 || ss > 25) {
-                ElMessage.error('组内样本量需在 5-25 之间')
+                showError('组内样本量需在 5-25 之间')
                 return
             }
         }
@@ -451,11 +451,11 @@ const handleSave = async () => {
         if (techList.value.total !== '' && techList.value.total != null) {
             const effectiveSs = ss || 5
             if (isNaN(ts) || ts < effectiveSs) {
-                ElMessage.error(`总体样本量不能小于组内样本量 (${effectiveSs})`)
+                showError(`总体样本量不能小于组内样本量 (${effectiveSs})`)
                 return
             }
             if (ts % effectiveSs !== 0) {
-                ElMessage.error(`总体样本量必须是组内样本量 (${effectiveSs}) 的整倍数`)
+                showError(`总体样本量必须是组内样本量 (${effectiveSs}) 的整倍数`)
                 return
             }
         }
@@ -484,7 +484,7 @@ const handleSave = async () => {
 
             const result = await createTask(taskData)
             if (result.code >= 400) {
-                ElMessage.error(result.message || result.msg || '创建任务失败')
+                showError(result.message || result.msg || '创建任务失败')
                 return
             }
             const newTaskId = result.data?.id
@@ -500,11 +500,11 @@ const handleSave = async () => {
                 }))
                 const batchRes = await createMeasurementBatch(String(newTaskId), measurementItems)
                 if (batchRes.code >= 400) {
-                    ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
+                    showError(batchRes.message || batchRes.msg || '创建测量数据失败')
                     return
                 }
                 if (batchRes.data?.errors?.length > 0) {
-                    ElMessage.error('数据创建失败: ' + batchRes.data.errors.join('; '))
+                    showError('数据创建失败: ' + batchRes.data.errors.join('; '))
                     return
                 }
             }
@@ -512,12 +512,12 @@ const handleSave = async () => {
             // 刷新页面数据（新增模式无法用 taskId computed 刷新，直接跳过）
             // 通知父组件
             emit('save', { mode: 'create', taskId: newTaskId })
-            ElMessage.success(result.msg || '任务创建成功')
+            showSuccess(result.msg || '任务创建成功')
         } else {
             // ===== 编辑模式 =====
             const taskId = prop.selectedItem._rawData?.id
             if (!taskId) {
-                ElMessage.error('缺少任务ID，无法更新')
+                showError('缺少任务ID，无法更新')
                 return
             }
 
@@ -544,7 +544,7 @@ const handleSave = async () => {
             // 更新任务基本信息
             const res = await updateTask(String(taskId), updateData)
             if (res.code >= 400) {
-                ElMessage.error(res.message || res.msg || '更新任务失败')
+                showError(res.message || res.msg || '更新任务失败')
                 return
             }
 
@@ -578,7 +578,7 @@ const handleSave = async () => {
                                 enabled: row.enabled ? 1 : 0,
                             })
                             if (updateRes.code >= 400) {
-                                ElMessage.error(updateRes.message || updateRes.msg || '更新测量数据失败')
+                                showError(updateRes.message || updateRes.msg || '更新测量数据失败')
                                 return
                             }
                         }
@@ -600,11 +600,11 @@ const handleSave = async () => {
             if (newMeasurementItems.length > 0) {
                 const batchRes = await createMeasurementBatch(String(taskId), newMeasurementItems)
                 if (batchRes.code >= 400) {
-                    ElMessage.error(batchRes.message || batchRes.msg || '创建测量数据失败')
+                    showError(batchRes.message || batchRes.msg || '创建测量数据失败')
                     return
                 }
                 if (batchRes.data?.errors?.length > 0) {
-                    ElMessage.error('数据创建失败: ' + batchRes.data.errors.join('; '))
+                    showError('数据创建失败: ' + batchRes.data.errors.join('; '))
                     return
                 }
             }
@@ -618,24 +618,24 @@ const handleSave = async () => {
 
             // 通知父组件
             emit('save', { mode: 'update', taskId })
-            ElMessage.success(res.msg || '任务更新成功')
+            showSuccess(res.msg || '任务更新成功')
         }
     } catch (error: any) {
         console.error('保存失败:', error)
         const status = error.response?.status
         const apiMsg = error.response?.data?.msg || error.response?.data?.message
         if (apiMsg) {
-            ElMessage.error(apiMsg)
+            showError(apiMsg)
         } else if (status === 400) {
-            ElMessage.error('请求参数有误，请检查必填字段')
+            showError('请求参数有误，请检查必填字段')
         } else if (status === 404) {
-            ElMessage.error('任务不存在，请刷新后重试')
+            showError('任务不存在，请刷新后重试')
         } else if (status === 500) {
-            ElMessage.error('服务器内部错误，请稍后重试')
+            showError('服务器内部错误，请稍后重试')
         } else if (error.message?.includes('timeout')) {
-            ElMessage.error('请求超时，请检查网络连接')
+            showError('请求超时，请检查网络连接')
         } else {
-            ElMessage.error('保存失败: ' + (error.message || '未知错误'))
+            showError('保存失败: ' + (error.message || '未知错误'))
         }
     } finally {
         saving.value = false
@@ -690,7 +690,7 @@ const fetchTaskDetail = async () => {
         }
     } catch (error) {
         console.error('获取任务详情失败:', error)
-        ElMessage.error('获取任务详情失败')
+        showError('获取任务详情失败')
     }
 }
 
@@ -784,7 +784,7 @@ const fetchMeasurements = async () => {
         }
     } catch (error) {
         console.error('获取测量数据失败:', error)
-        ElMessage.error('获取测量数据失败')
+        showError('获取测量数据失败')
     }
 }
 
@@ -886,48 +886,6 @@ const totalSampleSizeError = computed(() => {
   return ''
 })
 
-// 防重复警告标记
-let lastSubgroupWarning = ''
-let lastTotalWarning = ''
-
-// 实时验证警告：组内样本量不符合要求时弹出
-watch(() => techList.value.set, (val) => {
-  if (val === '' || val == null) return
-  const num = parseInt(val)
-  if (isNaN(num)) return
-  if (num < 5 || num > 25) {
-    const msg = '组内样本量需在 5-25 之间'
-    if (msg !== lastSubgroupWarning) {
-      ElMessage.warning(msg)
-      lastSubgroupWarning = msg
-    }
-  } else {
-    lastSubgroupWarning = ''
-  }
-})
-
-// 实时验证警告：总体样本量不符合要求时弹出
-watch(() => techList.value.total, (val) => {
-  if (val === '' || val == null) return
-  const num = parseInt(val)
-  if (isNaN(num)) return
-  const ss = parseInt(techList.value.set) || 5
-  if (num < ss) {
-    const msg = `总体样本量不能小于组内样本量 (${ss})`
-    if (msg !== lastTotalWarning) {
-      ElMessage.warning(msg)
-      lastTotalWarning = msg
-    }
-  } else if (num % ss !== 0) {
-    const msg = `总体样本量必须是组内样本量 (${ss}) 的整倍数`
-    if (msg !== lastTotalWarning) {
-      ElMessage.warning(msg)
-      lastTotalWarning = msg
-    }
-  } else {
-    lastTotalWarning = ''
-  }
-})
 
 // 响应式数据
 const sampleData = ref<SampleData[]>([])
@@ -1026,22 +984,23 @@ const handleTaskStatusChange = async () => {
     try {
         const taskId = prop.selectedItem._rawData?.id
         if (!taskId) {
-            ElMessage.error('任务ID不存在')
+            showError('任务ID不存在')
             prop.selectedItem.status = prop.selectedItem.status === '1' ? '0' : '1'
             return
         }
 
         const newStatus = prop.selectedItem.status === '1' ? 1 : 0
 
-        await updateTaskStatus(String(taskId), newStatus as 0 | 1)
+        const res = await updateTaskStatus(String(taskId), newStatus as 0 | 1)
 
-        ElMessage.success(newStatus === 1 ? '任务已启用' : '任务已停用')
+        if (res.code === 200) showSuccess(newStatus === 1 ? '任务已启用' : '任务已停用')
+        else showError('状态切换失败')
 
         // emit('change')
     } catch (error) {
         console.error('状态切换失败:', error)
         prop.selectedItem.status = prop.selectedItem.status === '1' ? '0' : '1'
-        ElMessage.error('状态切换失败')
+        showError('状态切换失败')
     }
 }
 
@@ -1089,7 +1048,7 @@ const getStatusTagType = (status: string) => {
 
 // 开关变化处理
 const handleSwitchChange = (row: SampleData) => {
-  ElMessage.info(`${row.subgroupId} 状态已${row.enabled ? '启用' : '禁用'}`)
+  showInfo(`${row.subgroupId} 状态已${row.enabled ? '启用' : '禁用'}`)
   console.log('开关状态变化:', row)
 }
 
@@ -1153,7 +1112,7 @@ const confirmNewRow = (row: SampleData) => {
   const n = subgroupSizeNum.value
   const hasAllValues = row.values.slice(0, n).every(v => v != null)
   if (!hasAllValues) {
-    ElMessage.warning(`请填写完整 ${n} 个样本值`)
+    showWarning(`请填写完整 ${n} 个样本值`)
     return
   }
 
@@ -1165,7 +1124,7 @@ const confirmNewRow = (row: SampleData) => {
   editingRows.value = editingRows.value.filter(r => r.id !== row.id)
 
   recalcOverall()
-  ElMessage.success('新增成功')
+  showSuccess('新增成功')
 }
 
 const cancelNewRow = (id: string) => {
@@ -1207,12 +1166,12 @@ const handleFile = (e: Event) => {
     const wb = XLSX.read(evt.target?.result, { type: 'binary', cellDates: true, cellNF: false })
     const name = wb.SheetNames[0]
     if (!name) {
-        ElMessage.error("Excel 中未找到工作表")
+        showError("Excel 中未找到工作表")
         return
     }
     const sheet = wb.Sheets[name]
     if (!sheet) {
-        ElMessage.error("Excel 中未找到工作表")
+        showError("Excel 中未找到工作表")
         return
     }
     const rows: any[] = XLSX.utils.sheet_to_json(sheet)
@@ -1244,7 +1203,7 @@ const handleFile = (e: Event) => {
       ]
     })
 
-    ElMessage.success('导入成功')
+    showSuccess('导入成功')
   }
   reader.readAsBinaryString(file)
 }
