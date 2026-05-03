@@ -1119,8 +1119,7 @@ onUnmounted(() => {
 .table-container {
     flex: 1;
     width: 100%;
-    overflow-x: hidden;
-    overflow-y: hidden; 
+    overflow: auto;
     border: 1px solid #ebeef5;
     border-radius: 4px;
 }

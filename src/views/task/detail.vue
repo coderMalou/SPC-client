@@ -551,7 +551,7 @@ const handleSave = async () => {
             // 测量数据差异处理
             const newMeasurementItems: any[] = []
             for (const row of sampleData.value) {
-                if (row.id && !row.id.startsWith('sample-') && !row.id.startsWith('new-')) {
+                if (row.id && !row.id.startsWith('sample-') && !row.id.startsWith('new-') && !row.id.startsWith('import-')) {
                     // 已有行：与原始数据对比，有差异则更新
                     const originalRow = originalData.value?.sampleData?.find((r: any) => r.id === row.id)
                     if (originalRow) {
@@ -1197,7 +1197,8 @@ const handleFile = (e: Event) => {
         range: +range.toFixed(2),
         status: r['状态'] ?? '正常',
         operator: r['操作员'],
-        remark: r['备注'] ?? ''
+        remark: r['备注'] ?? '',
+        enabled: true
       } as SampleData,
       ...sampleData.value
       ]
