@@ -802,6 +802,30 @@ const formatDateTime = (dateStr: string): string => {
   return `${y}-${M}-${d} ${h}:${m}`
 }
 
+// 数据缩放配置：当数据点超过25个时启用滚动
+const createDataZoomOption = (dataLength: number) => {
+  const showZoom = dataLength > 25
+  const startIdx = showZoom ? dataLength - 25 : 0
+  return [
+    {
+      type: 'inside' as const,
+      startValue: startIdx,
+      endValue: dataLength - 1
+    },
+    {
+      type: 'slider' as const,
+      show: showZoom,
+      startValue: startIdx,
+      endValue: dataLength - 1,
+      height: 20,
+      bottom: 10,
+      borderColor: '#ddd',
+      fillerColor: 'rgba(144, 197, 237, 0.2)',
+      labelFormatter: (value: number) => subgroupData.value[value]?.subgroupNo || ''
+    }
+  ]
+}
+
 // 保存控制限引用
 const controlLimitsRef = ref<{
   xbar: { ucl: number; cl: number; lcl: number } | null;
@@ -893,6 +917,10 @@ const initCharts = (): void => {
     controlLimits = calculateControlLimits(subgroupData.value)
   }
 
+  // 数据缩放配置：当数据点超过25个时启用滚动
+  const showDataZoom = subgroupData.value.length > 25
+  const dataZoomOptions = createDataZoomOption(subgroupData.value.length)
+
   // 初始化Xbar控制图
   if (xbarChart.value) {
     xbarChartInstance = echarts.init(xbarChart.value)
@@ -922,7 +950,8 @@ const initCharts = (): void => {
           return `子组: ${data.name}<br/>均值: ${data.value.toFixed(PRECISION_CONFIG.MEAN)}<br/>UCL: ${controlLimits.xbar.ucl.toFixed(PRECISION_CONFIG.MEAN)}<br/>CL: ${controlLimits.xbar.cl.toFixed(PRECISION_CONFIG.MEAN)}<br/>LCL: ${controlLimits.xbar.lcl.toFixed(PRECISION_CONFIG.MEAN)}`
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
@@ -931,6 +960,20 @@ const initCharts = (): void => {
       yAxis: {
         type: 'value',
         name: '均值',
+        min: (() => {
+          const dataValues = subgroupData.value.map(d => d.mean)
+          const lowest = Math.min(controlLimits.xbar.lcl, ...dataValues)
+          const highest = Math.max(controlLimits.xbar.ucl, ...dataValues)
+          const padding = (highest - lowest) * 0.05 || 0.5
+          return lowest - padding
+        })(),
+        max: (() => {
+          const dataValues = subgroupData.value.map(d => d.mean)
+          const lowest = Math.min(controlLimits.xbar.lcl, ...dataValues)
+          const highest = Math.max(controlLimits.xbar.ucl, ...dataValues)
+          const padding = (highest - lowest) * 0.05 || 0.5
+          return highest + padding
+        })(),
         axisLabel: {
           formatter: (value: number) => value.toFixed(PRECISION_CONFIG.MEAN)
         }
@@ -985,7 +1028,8 @@ const initCharts = (): void => {
           return `子组: ${data.name}<br/>极差: ${data.value.toFixed(PRECISION_CONFIG.RANGE)}<br/>UCL: ${controlLimits.range.ucl.toFixed(PRECISION_CONFIG.RANGE)}<br/>CL: ${controlLimits.range.cl.toFixed(PRECISION_CONFIG.RANGE)}`
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
@@ -1038,7 +1082,8 @@ const initCharts = (): void => {
           return `子组: ${data.name}<br/>标准差: ${data.value.toFixed(PRECISION_CONFIG.STD_DEV)}<br/>UCL: ${controlLimits.std.ucl.toFixed(PRECISION_CONFIG.STD_DEV)}<br/>CL: ${controlLimits.std.cl.toFixed(PRECISION_CONFIG.STD_DEV)}`
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
@@ -1105,7 +1150,8 @@ const initCharts = (): void => {
           return result
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
@@ -1188,6 +1234,15 @@ const initCharts = (): void => {
       `${formatNumber(min + i * binWidth, PRECISION_CONFIG.SAMPLE)}-${formatNumber(min + (i + 1) * binWidth, PRECISION_CONFIG.SAMPLE)}`
     )
 
+    // 计算实际占比（每区间数据点占比）
+    const actualPercentages = histogramData.map(count => (count / allSamples.length) * 100)
+
+    // 计算理论正态分布频数
+    const theoreticalData = bins.map((_, i) => {
+      const x = min + (i + 0.5) * binWidth
+      return allSamples.length * (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / std, 2)) * binWidth
+    })
+
     const histogramOption: EChartsOption = {
       title: { text: '过程能力直方图' },
       tooltip: {
@@ -1197,14 +1252,25 @@ const initCharts = (): void => {
           params.forEach((param: any) => {
             if (param.seriesName === '实际频数') {
               result += `频数: ${param.value}<br/>`
+            } else if (param.seriesName === '实际分布') {
+              result += `实际分布: ${param.value.toFixed(1)}%<br/>`
             } else if (param.seriesName === '理论正态分布') {
-              result += `理论分布: ${param.value.toFixed(1)}%<br/>`
+              result += `理论正态分布: ${param.value.toFixed(1)}<br/>`
             }
           })
           return result
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      legend: {
+        data: [
+          { name: '实际分布', icon: 'roundRect', itemStyle: { color: '#00ff00' } },
+          { name: '理论正态分布', icon: 'roundRect', itemStyle: { color: '#ff4d4f' } }
+        ],
+        bottom: 0,
+        left: 'center',
+        textStyle: { fontSize: 12 }
+      },
+      grid: { left: '3%', right: '4%', bottom: '18%', containLabel: true },
       xAxis: [
         {
           type: 'category',
@@ -1222,7 +1288,6 @@ const initCharts = (): void => {
           type: 'value',
           name: '百分比',
           min: 0,
-          max: 100,
           axisLabel: { formatter: '{value}%' }
         }
       ],
@@ -1231,19 +1296,32 @@ const initCharts = (): void => {
           name: '实际频数',
           type: 'bar',
           data: histogramData,
-          itemStyle: { color: '#1890ff' }
+          itemStyle: { color: '#1890ff' },
+          // label: {
+          //   show: true,
+          //   position: 'top',
+          //   formatter: (params: any) => params.value > 0 ? params.value : ''
+          // }
         } as SeriesOption,
         {
           name: '理论正态分布',
           type: 'line',
+          data: theoreticalData.map(v => Number(v.toFixed(1))),
+          lineStyle: { color: '#ff4d4f', width: 2 },
+          itemStyle: { color: '#ff4d4f' },
+          symbol: 'none',
+          smooth: true
+        } as SeriesOption,
+        {
+          name: '实际分布',
+          type: 'line',
           yAxisIndex: 1,
-          data: bins.map((_, i) => {
-            const x = min + (i + 0.5) * binWidth
-            return 100 * (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / std, 2)) * binWidth
-          }),
-          lineStyle: { color: '#fa8c16' },
-          symbol: 'none'
-        } as SeriesOption
+          data: actualPercentages.map(v => Number(v.toFixed(1))),
+          lineStyle: { color: '#00ff00', width: 2 },
+          itemStyle: { color: '#00ff00' },
+          symbol: 'none',
+          smooth: true
+        } as SeriesOption,
       ]
     }
     histogramChartInstance.setOption(histogramOption)
