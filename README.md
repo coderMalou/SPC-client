@@ -73,7 +73,7 @@ npm run build
 
 # 生产环境预览
 npm run preview
-
+```
 ### 2.4 访问系统
 
 开发服务器启动后，在浏览器中访问：`http://localhost:8080`
