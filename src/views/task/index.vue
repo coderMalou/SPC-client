@@ -109,7 +109,7 @@
                         @selection-change="handleMultiSelect"
                     >
                         <el-table-column type="selection" :selectable="()=>true"></el-table-column>
-                        <el-table-column prop="line" label="行号" align="center"></el-table-column>
+                        <el-table-column prop="lineNo" label="行号" align="center"></el-table-column>
                         <el-table-column prop="ticket" label="工单号" align="center"></el-table-column>
                         <el-table-column prop="pid" label="产品编码" align="center"></el-table-column>
                         <el-table-column prop="pname" label="产品名称" align="center"></el-table-column>
@@ -317,7 +317,7 @@ const deletDialog = ref(false)
 
 // 数据类型定义
 interface TaskData {
-    line?: number;
+    lineNo?: number;
     ticket?: string;
     pid?: string;
     pname?: string;
@@ -393,7 +393,7 @@ const fetchTasks = async (workOrderId?: number) => {
         if (res.code === 200) {
             // 转换后端数据为前端需要的格式
             rawTableData.value = res.data.map((item: any, index: number) => ({
-                line: index + 1,
+                lineNo: item.lineNo,
                 ticket: item.orderNo,
                 tid: item.taskNo,
                 pid: item.productCode,
@@ -681,7 +681,7 @@ const handleExport = () => {
         // 添加选中行的数据
         selectedData.value.forEach((item:any) => {
             worksheetData.push([
-                item.line,
+                item.No,
                 item.ticket,
                 item.pid,
                 item.pname,
@@ -742,7 +742,7 @@ const handleCopy = async () => {
         
         // 添加选中行的数据
         selectedData.value.forEach((item:any) => {
-            clipboardText += `${item.line}\t${item.ticket}\t${item.pid}\t${item.pname}\t${item.tid}\t${item.tname}\t${item.devid}\t${getStatusText(item.status)}\t${item.stime}\t${item.ctime}\n`
+            clipboardText += `${item.lineNo}\t${item.ticket}\t${item.pid}\t${item.pname}\t${item.tid}\t${item.tname}\t${item.devid}\t${getStatusText(item.status)}\t${item.stime}\t${item.ctime}\n`
         })
         
         // 使用现代Clipboard API

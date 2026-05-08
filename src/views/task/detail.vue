@@ -32,7 +32,7 @@
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>行号</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.line" placeholder="请输入行号"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.lineNo" placeholder="请输入行号"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);"><span class="required">*</span>产品编码</span>
@@ -188,7 +188,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="datetime" label="日期时间" align="center">
+                    <el-table-column prop="datetime" label="日期时间" align="center" width="120">
                     <template #default="scope">
                         <el-input
                           v-if="scope.row.isNew"
@@ -374,7 +374,7 @@ const handleCommand = (command: string) => {
 }
 
 interface data {
-    line?: number;
+    lineNo?: number;
     ticket?: string;
     pid?: string;
     pname?: string;
@@ -405,7 +405,7 @@ const validateRequired = () => {
     const fields: { label: string; value: any }[] = [
         { label: '工作任务号', value: prop.selectedItem.tid },
         { label: '工单号', value: prop.selectedItem.ticket },
-        { label: '行号', value: prop.selectedItem.line },
+        { label: '行号', value: prop.selectedItem.lineNo },
         { label: '产品编码', value: prop.selectedItem.pid },
         { label: '产品名称', value: prop.selectedItem.pname },
         { label: '规格/型号', value: spec.value },
@@ -464,7 +464,7 @@ const handleSave = async () => {
             const taskData: any = {
                 workOrderId: prop.selectedItem.workOrderId,
                 taskNo: prop.selectedItem.tid,
-                lineNo: prop.selectedItem.line != null ? parseInt(String(prop.selectedItem.line)) : undefined,
+                lineNo: prop.selectedItem.lineNo != null ? parseInt(String(prop.selectedItem.lineNo)) : undefined,
                 productCode: prop.selectedItem.pid,
                 productName: prop.selectedItem.pname,
                 processName: techList.value.techname,
@@ -523,7 +523,7 @@ const handleSave = async () => {
 
             const updateData: any = {
                 taskNo: prop.selectedItem.tid,
-                lineNo: prop.selectedItem.line != null ? parseInt(String(prop.selectedItem.line)) : undefined,
+                lineNo: prop.selectedItem.lineNo != null ? parseInt(String(prop.selectedItem.lineNo)) : undefined,
                 productCode: prop.selectedItem.pid,
                 productName: prop.selectedItem.pname,
                 processName: techList.value.techname,
