@@ -1,52 +1,48 @@
 <template>
-  <div class="graph-container" ref="exportTarget">
-    <!-- 顶部筛选工具栏 -->
+  <div class="graph-container" ref="exportTarget" v-loading="loading">
+
+
+    <!-- 顶部工具栏 -->
     <div class="tool-bar">
       <div class="filter">
-        <!-- 工单号筛选 -->
-        <div class="filter-item">
-          <label>工单号</label>
-          <el-select v-model="filter.workOrder" placeholder="请选择工单号" @change="handleFilterChange" style="width: 135px;">
-            <el-option
-              v-for="item in workOrderOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
-        
-        <!-- 任务筛选 -->
-        <div class="filter-item">
-          <label>任务</label>
-          <el-select v-model="filter.task" placeholder="请选择任务" @change="handleFilterChange" style="width: 135px;">
-            <el-option
-              v-for="item in taskOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
+        <el-cascader
+          v-model="selectedWorkOrderTask"
+          :options="workOrderTaskTree"
+          :props="cascaderProps"
+          placeholder="请选择工单和对应任务"
+          change-on-select
+          filterable
+          @change="handleWorkOrderTaskChange"
+          clearable
+        />
       </div>
-      
+
       <div class="operation">
         <!-- 导出图片按钮 -->
         <el-button type="primary" @click="exportImage">
           <i class="el-icon-picture"></i>
           导出图片
         </el-button>
-        
+
         <!-- 刷新按钮 -->
-        <el-button @click="refreshData">
+        <el-button @click="refreshDataDebounced" :loading="loading">
           <i class="el-icon-refresh"></i>
           刷新
         </el-button>
       </div>
     </div>
 
+    <!-- 无数据提示 -->
+    <div v-if="hasNoData" class="no-data-placeholder">
+      <div class="no-data-content">
+        <i class="el-icon-data-line no-data-icon"></i>
+        <p class="no-data-text">暂无数据</p>
+        <p class="no-data-hint">请从上方选择工单和任务</p>
+      </div>
+    </div>
+
     <!-- 控制图基本信息 -->
-    <div class="info-card">
+    <div v-else class="info-card">
       <div class="header">
         <h3>控制图基本信息</h3>
         <el-tag :type="statusBadge.type as any" effect="dark">
@@ -105,10 +101,10 @@
       </div>
     </div>
 
-    <div class="divider"></div>
+    <div v-if="!hasNoData" class="divider"></div>
 
     <!-- 组合图表：Xbar控制图和X-R控制图 -->
-    <div class="info-card chart-row">
+    <div v-if="!hasNoData" class="info-card chart-row">
       <div class="chart-item">
         <div class="header">
           <h3>Xbar控制图 (均值图)</h3>
@@ -130,10 +126,10 @@
       </div>
     </div>
 
-    <div class="divider"></div>
+    <div v-if="!hasNoData" class="divider"></div>
 
     <!-- 组合图表：S控制图和样本均值偏离图表 -->
-    <div class="info-card chart-row">
+    <div v-if="!hasNoData" class="info-card chart-row">
       <div class="chart-item">
         <div class="header">
           <h3>S控制图 (标准差图)</h3>
@@ -155,15 +151,15 @@
       </div>
     </div>
 
-    <div class="divider"></div>
+    <div v-if="!hasNoData" class="divider"></div>
 
     <!-- 异常判断和提示 -->
-    <div class="info-card">
+    <div v-if="!hasNoData" class="info-card">
       <div class="header">
         <h3>异常判断结果</h3>
       </div>
       <div class="content">
-        
+
           <p :class="['status-text', anomalyInfo.status]">
             {{ anomalyInfo.message }}
           </p>
@@ -182,14 +178,14 @@
             <span class="rule-desc">{{ anomalyInfo.enabledRule }}</span>
           </el-tooltip>
         </div>
-        
+
       </div>
     </div>
 
-    <div class="divider"></div>
+    <div v-if="!hasNoData" class="divider"></div>
 
     <!-- 组合图表：过程能力直方图和过程能力指标 -->
-    <div class="info-card chart-row">
+    <div v-if="!hasNoData" class="info-card chart-row">
       <div class="metric-item-wrapper">
         <div class="header">
           <h3>过程能力指标</h3>
@@ -236,28 +232,28 @@
       </div>
     </div>
 
-    <div class="divider"></div>
+    <div v-if="!hasNoData" class="divider"></div>
 
 
 
     <!-- 最近数据点表格 -->
-    <div class="info-card">
+    <div v-if="!hasNoData" class="info-card">
       <div class="header">
         <h3>最近数据点 (最近25个子组)</h3>
-        <el-button type="text" @click="viewAllData">查看全部数据 →</el-button>
+        <el-button type="text" @click="viewAllData">查看全部数据</el-button>
       </div>
       <div class="table-content">
         <el-table :data="recentData" style="width: 100%; table-layout: auto;">
-          <el-table-column prop="subgroupNo" label="子组编号"/>
-          <el-table-column prop="sample1" label="样本1"/>
-          <el-table-column prop="sample2" label="样本2"/>
-          <el-table-column prop="sample3" label="样本3"/>
-          <el-table-column prop="sample4" label="样本4"/>
-          <el-table-column prop="sample5" label="样本5"/>
-          <el-table-column prop="mean" label="均值(X̄)"/>
-          <el-table-column prop="stdDev" label="标准差(σ)"/>
-          <el-table-column prop="range" label="极差(R)"/>
-          <el-table-column prop="inspectionTime" label="检测时间"/>
+          <el-table-column prop="subgroupNo" label="子组编号" align="center"/>
+          <el-table-column prop="sample1" label="样本1" align="center"/>
+          <el-table-column prop="sample2" label="样本2" align="center"/>
+          <el-table-column prop="sample3" label="样本3" align="center"/>
+          <el-table-column prop="sample4" label="样本4" align="center"/>
+          <el-table-column prop="sample5" label="样本5" align="center"/>
+          <el-table-column prop="mean" label="均值(X̄)" align="center"/>
+          <el-table-column prop="stdDev" label="标准差(σ)" align="center"/>
+          <el-table-column prop="range" label="极差(R)" align="center"/>
+          <el-table-column prop="inspectionTime" label="检测时间" align="center"/>
         </el-table>
       </div>
     </div>
@@ -265,20 +261,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsOption, SeriesOption } from 'echarts'
-import { ElMessage, ElSelect, ElOption, ElButton, ElTag, ElTooltip, ElTable, ElTableColumn } from 'element-plus'
+import { showSuccess, showError, showWarning } from '@/utils/message'
+import { ElButton, ElTag, ElTooltip, ElTable, ElTableColumn, ElCascader } from 'element-plus'
 import html2canvas from 'html2canvas'
 
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 const router = useRouter()
+const route = useRoute()
 
-// 筛选条件接口
-interface Filter {
-  workOrder: string
-  task: string
-}
+// 导入 API模块
+import { getControlChart, getCapability, getWorkOrderTree, getMeasurements } from '@/api/modules/index';
+import { useDebounceFn } from '@/utils/functions';
 
 // 基本信息接口
 interface BasicInfo {
@@ -373,53 +369,134 @@ const formatNumber = (value: number, precision: number): number => {
   return Number(value.toFixed(precision))
 }
 
-// 响应式数据
-const filter = ref<Filter>({
-  workOrder: 'WO001',
-  task: 'T001'
+// 工单任务树相关
+const selectedWorkOrderTask = ref<string[]>([])
+const workOrderTaskTree = ref<any[]>([])
+
+const cascaderProps = {
+  expandTrigger: 'hover' as const,
+  value: 'id',
+  label: 'label',
+  children: 'children',
+  emitPath: true
+}
+
+// 获取工单树数据
+const fetchWorkOrderTree = async (): Promise<void> => {
+  try {
+    const res: any = await getWorkOrderTree()
+    // res 格式是 {code: number, data: [...]} 或直接是数组
+    let data: any[] = []
+    if (Array.isArray(res)) {
+      data = res
+    } else if (res && Array.isArray(res.data)) {
+      data = res.data
+    }
+
+    workOrderTaskTree.value = data.map((wo: any) => ({
+      id: String(wo.id || wo.orderNo),  // 优先使用id，否则使用orderNo
+      label: wo.orderNo || wo.label,
+      children: (wo.children || []).map((task: any) => ({
+        id: String(task.id),
+        label: task.taskNo ? `${task.taskNo} - ${task.processName || ''}` : task.processName || '',
+        processName: task.processName,
+        qualityChar: task.qualityChar
+      }))
+    }))
+    console.log('工单树数据:', workOrderTaskTree.value)
+  } catch (error) {
+    console.error('获取工单树失败:', error)
+  }
+}
+
+// 根据任务ID找到对应的工单任务路径
+const findWorkOrderTaskPath = (taskId: number | null): string[] => {
+  if (!taskId || !workOrderTaskTree.value.length) return []
+
+  for (const wo of workOrderTaskTree.value) {
+    const task = wo.children?.find((t: any) => parseInt(t.id) === taskId)
+    if (task) {
+      return [String(wo.id), String(task.id)]
+    }
+  }
+  return []
+}
+
+const findWorkOrderId = (taskId: number | null): string => {
+  console.log('taskId: ',taskId)
+  if (!taskId || !workOrderTaskTree.value.length) return ''
+
+  for (const wo of workOrderTaskTree.value) {
+    const task = wo.children?.find((t: any) => parseInt(t.id) === taskId)
+    if (task) {
+      return String(wo.label)
+    }
+  }
+  return ''
+}
+
+// 处理工单任务选择变化
+const handleWorkOrderTaskChange = async (value: any) => {
+  // change-on-select 模式下，只有完整选择两级（工单+任务）时才加载数据
+  if (value && Array.isArray(value) && value.length === 2 && value[0] && value[1]) {
+    const taskId = value[1]
+    if (taskId) {
+      currentTaskId.value = parseInt(taskId, 10)
+      loading.value = true
+      try {
+        await fetchControlChartData(currentTaskId.value)
+        await fetchCapabilityData(currentTaskId.value)
+        nextTick(() => {
+          basicInfo.value.workOrderNo = findWorkOrderId(parseInt(selectedWorkOrderTask.value[1]||''))
+          initCharts()
+        })
+      } catch (error) {
+        console.error('获取数据失败:', error)
+        showError('获取数据失败')
+      } finally {
+        loading.value = false
+      }
+    }
+  } else if (!value || (Array.isArray(value) && value.length < 2)) {
+    // 只选择了工单但没选任务，或者清空了选择，不做处理
+    // 注意：不清除数据，保持当前显示
+  }
+}
+
+// 是否有数据
+const hasNoData = computed(() => {
+  return !currentTaskId.value || subgroupData.value.length === 0
 })
 
-const workOrderOptions = ref([
-  { value: 'WO001', label: 'WO001' },
-  { value: 'WO002', label: 'WO002' },
-  { value: 'WO003', label: 'WO003' }
-])
-
-const taskOptions = ref([
-  { value: 'T001', label: '任务001' },
-  { value: 'T002', label: '任务002' },
-  { value: 'T003', label: '任务003' }
-])
-
 const basicInfo = ref<BasicInfo>({
-  productCode: 'P001',
-  productName: '示例产品',
-  workTaskNo: 'WT20240119001',
-  workOrderNo: 'WO20240119001',
-  processName: '加工工序',
-  qualityCharacteristic: '尺寸精度',
-  equipmentCode: 'EQ001',
-  subgroupSampleSize: 5,
-  totalSampleSize: 138,
-  usl: 10.5,
-  lsl: 9.5,
-  lastUpdateTime: '2024-01-19 14:30:00'
+  productCode: '',
+  productName: '',
+  workTaskNo: '',
+  workOrderNo: '',
+  processName: '',
+  qualityCharacteristic: '',
+  equipmentCode: '',
+  subgroupSampleSize: 0,
+  totalSampleSize: 0,
+  usl: 0,
+  lsl: 0,
+  lastUpdateTime: ''
 })
 
 const anomalyInfo = ref<AnomalyInfo>({
   status: 'normal',
   message: '过程受控-未发现特殊原因变异',
   enabledRule: '无异常',
-  lastCheckTime: '2024年01月19日 14:30'
+  lastCheckTime: ''
 })
 
 const capabilityMetrics = ref<CapabilityMetrics>({
-  cp: 1.35,
-  cpk: 1.28,
-  pp: 1.30,
-  ppk: 1.22,
-  defectRate: 0.12,
-  sigmaLevel: 3.85
+  cp: 0,
+  cpk: 0,
+  pp: 0,
+  ppk: 0,
+  defectRate: 0,
+  sigmaLevel: 0
 })
 
 const recentData = ref<RecentData[]>([])
@@ -428,6 +505,19 @@ const subgroupData = ref<SubgroupData[]>([])
 const exportTarget = ref<HTMLElement|null>(null);
 const previewUrl = ref('');
 const loading = ref(false);
+
+// 当前任务ID
+const currentTaskId = ref<number | null>(null);
+
+// 获取路由参数中的任务ID
+const getTaskIdFromRoute = (): number | null => {
+    const taskId = route.query.taskId
+    if (taskId && typeof taskId === 'string') {
+        const id = parseInt(taskId, 10)
+        return isNaN(id) ? null : id
+    }
+    return null
+}
 
 // 图表引用
 const xbarChart = ref<HTMLElement>()
@@ -462,13 +552,13 @@ const statusBadge = computed(() => {
     'warning': 'warning',
     'out-of-control': 'danger'
   } as const
-  
+
   const textMap = {
     'normal': '受控',
     'warning': '警告',
     'out-of-control': '失控'
   }
-  
+
   return {
     type: typeMap[status],
     text: textMap[status]
@@ -492,14 +582,7 @@ const getCapabilityLevelText = (cpk: number): string => {
   return 'E级'
 }
 
-// 事件处理
-const handleFilterChange = (): void => {
-  // 筛选条件变更后刷新数据
-  refreshData()
-}
-
 const exportImage = async () => {
-  // 简单校验
   if (!exportTarget.value) {
     alert('未找到要导出的内容');
     return;
@@ -507,42 +590,34 @@ const exportImage = async () => {
 
   loading.value = true;
 
-  // 1. 获取原生 DOM 元素并断言类型
   const element = exportTarget.value as HTMLElement;
 
-  // 2. 保存原始样式（关键步骤）
   const originalStyles = {
     overflow: element.style.overflow,
     height: element.style.height,
-    position: element.style.position, // 处理定位可能带来的影响
+    position: element.style.position,
     left: element.style.left,
     top: element.style.top,
   };
 
   try {
-    // 3. 临时修改样式，展开所有内容[1,7](@ref)
-    // 目标是消除任何可能裁剪内容的样式
     element.style.overflow = 'visible';
     element.style.height = 'auto';
-    // 确保元素在文档流中正常展开，不会被推出视口
     element.style.position = 'static';
     element.style.left = 'auto';
     element.style.top = 'auto';
 
-    // 4. 获取展开后的完整尺寸
     const fullWidth = element.scrollWidth;
     const fullHeight = element.scrollHeight;
 
-    // 5. 使用 html2canvas 捕获
     const canvas = await html2canvas(element, {
       useCORS: true,
       allowTaint: false,
       scale: 2,
-      width: fullWidth,   // 使用完整宽度
-      height: fullHeight, // 使用完整高度
+      width: fullWidth,
+      height: fullHeight,
       scrollX: 0,
       scrollY: 0,
-      // 可选：如果遇到复杂样式，使用 onclone 回调在内部克隆体上做最终调整[1](@ref)
       onclone: (clonedDocument, element) => {
         const clonedElement = element as HTMLElement;
         clonedElement.style.overflow = 'visible';
@@ -550,9 +625,8 @@ const exportImage = async () => {
       }
     });
 
-    // 6. 触发下载
     const link = document.createElement('a');
-    link.download = `控制图_${new Date().getTime()}.png`; // 加时间戳防重名
+    link.download = `控制图_${new Date().getTime()}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
 
@@ -560,7 +634,6 @@ const exportImage = async () => {
     console.error('导出图片失败:', error);
     alert('导出失败，请查看控制台信息。');
   } finally {
-    // 7. 【重要】无论成功与否，恢复原始样式
     element.style.overflow = originalStyles.overflow;
     element.style.height = originalStyles.height;
     element.style.position = originalStyles.position;
@@ -571,17 +644,224 @@ const exportImage = async () => {
   }
 };
 
-const refreshData = (): void => {
-  // 刷新数据逻辑
-  ElMessage.info('数据已刷新')
-  generateMockData()
-  initCharts()
+const refreshData = async (): Promise<void> => {
+  if (!currentTaskId.value) {
+    showWarning('请先选择任务')
+    return
+  }
+
+  loading.value = true
+  try {
+    await fetchControlChartData(currentTaskId.value)
+    await fetchCapabilityData(currentTaskId.value)
+    // 从工单树中恢复工单号，避免 API 返回的 orderNo 为空导致显示消失
+    basicInfo.value.workOrderNo = findWorkOrderId(currentTaskId.value)
+    showSuccess('数据已刷新')
+  } catch (error) {
+    console.error('刷新数据失败:', error)
+    showError('刷新数据失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 防抖刷新
+const refreshDataDebounced = useDebounceFn(refreshData, 500)
+
+// 获取控制图数据
+const fetchControlChartData = async (taskId: number) => {
+  try {
+    const res: any = await getControlChart(String(taskId))
+    console.log('控制图API响应:', res)
+
+    if (res.code === 200) {
+      const data = res.data
+
+      // 更新基本信息
+      basicInfo.value = {
+        productCode: data.task?.productCode || '',
+        productName: data.task?.productName || '',
+        workTaskNo: data.task?.taskNo || '',
+        workOrderNo: data.task?.orderNo || '',
+        processName: data.task?.processName || '',
+        qualityCharacteristic: data.task?.qualityChar || '',
+        equipmentCode: data.task?.equipmentCode || '',
+        subgroupSampleSize: data.task?.subgroupSize || 0,
+        totalSampleSize: data.task?.totalSampleSize || 0,
+        usl: data.task?.usl || 0,
+        lsl: data.task?.lsl || 0,
+        lastUpdateTime: data.lastCheck || ''
+      }
+
+      // 更新子组数据
+      const groupNos = data.series?.groupNos || []
+      const means = data.series?.means || []
+      const ranges = data.series?.ranges || []
+      const stdevs = data.series?.stdevs || []
+
+      // 从 limits 中获取控制限信息
+      const xbarLimit = data.limits?.xbar
+      const rLimit = data.limits?.r
+      const sLimit = data.limits?.s
+
+      // 获取测量数据以获取样本值
+      let measurementData: any[] = []
+      try {
+        const measRes: any = await getMeasurements(String(taskId))
+        if (measRes.code === 200) {
+          measurementData = measRes.data || []
+        }
+      } catch (e) {
+        console.error('获取测量数据失败:', e)
+      }
+
+      subgroupData.value = groupNos.map((no: any, index: number) => {
+        // 找到对应的测量数据
+        const meas = measurementData.find((m: any) => String(m.groupNo) === String(no))
+        const samples = meas?.sampleValues || []
+
+        return {
+          subgroupNo: String(no),
+          samples: samples,
+          mean: means[index] || 0,
+          stdDev: stdevs[index] || 0,
+          range: ranges[index] || 0
+        }
+      })
+
+      // 更新recentData - 从测量数据中获取样本值
+      recentData.value = subgroupData.value.slice(-25).reverse().map((d, index) => {
+        const meas = measurementData.find((m: any) => String(m.groupNo) === String(d.subgroupNo))
+        const values = meas?.sampleValues || []
+
+        return {
+          subgroupNo: d.subgroupNo,
+          sample1: values[0] ?? 0,
+          sample2: values[1] ?? 0,
+          sample3: values[2] ?? 0,
+          sample4: values[3] ?? 0,
+          sample5: values[4] ?? 0,
+          mean: formatNumber(d.mean, PRECISION_CONFIG.MEAN),
+          stdDev: formatNumber(d.stdDev, PRECISION_CONFIG.STD_DEV),
+          range: formatNumber(d.range, PRECISION_CONFIG.RANGE),
+          inspectionTime: meas?.measureTime ? formatDateTime(meas.measureTime) : ''
+        }
+      })
+
+      // 更新异常信息
+      const ruleStatus = data.rules?.status || 'normal'
+      let status: 'normal' | 'warning' | 'out-of-control' = 'normal'
+      if (ruleStatus === '受控' || ruleStatus === '正常') {
+        status = 'normal'
+      } else if (ruleStatus === '警告') {
+        status = 'warning'
+      } else {
+        status = 'out-of-control'
+      }
+
+      anomalyInfo.value = {
+        status,
+        message: data.rules?.message || '无数据',
+        enabledRule: data.rules?.anomalies?.length > 0 ? `发现${data.rules.anomalies.length}处异常` : '无异常',
+        lastCheckTime: data.lastCheck ? formatDate(data.lastCheck) : ''
+      }
+
+      // 保存控制限供图表使用
+      controlLimitsRef.value = data.limits || { xbar: null, r: null, s: null }
+
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('获取控制图数据失败:', error)
+    throw error
+  }
+}
+
+// 格式化日期
+const formatDate = (dateStr: string): string => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${year}年${month}月${day}日 ${hour}:${minute}`
+}
+
+// 格式化日期时间
+const formatDateTime = (dateStr: string): string => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const y = date.getFullYear()
+  const M = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const m = String(date.getMinutes()).padStart(2, '0')
+  return `${y}-${M}-${d} ${h}:${m}`
+}
+
+// 数据缩放配置：当数据点超过25个时启用滚动
+const createDataZoomOption = (dataLength: number) => {
+  const showZoom = dataLength > 25
+  const startIdx = showZoom ? dataLength - 25 : 0
+  return [
+    {
+      type: 'inside' as const,
+      startValue: startIdx,
+      endValue: dataLength - 1
+    },
+    {
+      type: 'slider' as const,
+      show: showZoom,
+      startValue: startIdx,
+      endValue: dataLength - 1,
+      height: 20,
+      bottom: 10,
+      borderColor: '#ddd',
+      fillerColor: 'rgba(144, 197, 237, 0.2)',
+      labelFormatter: (value: number) => subgroupData.value[value]?.subgroupNo || ''
+    }
+  ]
+}
+
+// 保存控制限引用
+const controlLimitsRef = ref<{
+  xbar: { ucl: number; cl: number; lcl: number } | null;
+  r: { ucl: number; cl: number; lcl: number } | null;
+  s: { ucl: number; cl: number; lcl: number } | null;
+}>({ xbar: null, r: null, s: null })
+
+// 获取过程能力数据
+const fetchCapabilityData = async (taskId: number) => {
+  try {
+    const res = await getCapability(String(taskId))
+    if (res.code === 200) {
+      const data = res.data
+
+      capabilityMetrics.value = {
+        cp: data.cp || 0,
+        cpk: data.cpk || 0,
+        pp: data.pp || 0,
+        ppk: data.ppk || 0,
+        defectRate: (data.ppm || 0) / 10000,
+        sigmaLevel: data.sigmaLevel || 0
+      }
+
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('获取过程能力数据失败:', error)
+    throw error
+  }
 }
 
 const viewAllData = (): void => {
-  // 查看全部数据逻辑
-  // ElMessage.info('跳转至任务详情页面')
-  router.push('/task/detail')
+  if (currentTaskId.value) {
+    router.push({ path: '/task', query: { taskId: String(currentTaskId.value) } })
+  }
 }
 
 // 计算控制限
@@ -619,13 +899,32 @@ const calculateControlLimits = (data: SubgroupData[]): {
 
 // 初始化图表
 const initCharts = (): void => {
-  const controlLimits = calculateControlLimits(subgroupData.value)
-  
+  if (subgroupData.value.length === 0) return
+
+  let controlLimits: {
+    xbar: { ucl: number; cl: number; lcl: number };
+    range: { ucl: number; cl: number; lcl: number };
+    std: { ucl: number; cl: number; lcl: number };
+  }
+
+  if (controlLimitsRef.value.xbar) {
+    controlLimits = {
+      xbar: controlLimitsRef.value.xbar || { ucl: 0, cl: 0, lcl: 0 },
+      range: controlLimitsRef.value.r || { ucl: 0, cl: 0, lcl: 0 },
+      std: controlLimitsRef.value.s || { ucl: 0, cl: 0, lcl: 0 }
+    }
+  } else {
+    controlLimits = calculateControlLimits(subgroupData.value)
+  }
+
+  // 数据缩放配置：当数据点超过25个时启用滚动
+  const showDataZoom = subgroupData.value.length > 25
+  const dataZoomOptions = createDataZoomOption(subgroupData.value.length)
+
   // 初始化Xbar控制图
   if (xbarChart.value) {
     xbarChartInstance = echarts.init(xbarChart.value)
-    
-    // 生成标记点数据
+
     const markPointData: MarkPointData[] = subgroupData.value.map((d, index) => {
       const mean = formatNumber(d.mean, PRECISION_CONFIG.MEAN)
       if (mean > controlLimits.xbar.ucl || mean < controlLimits.xbar.lcl) {
@@ -641,25 +940,40 @@ const initCharts = (): void => {
       }
       return null
     }).filter(Boolean) as MarkPointData[]
-    
+
     const xbarOption: EChartsOption = {
       title: { text: 'Xbar控制图 - 子组均值监控' },
-      tooltip: { 
+      tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
           const data = params[0]
           return `子组: ${data.name}<br/>均值: ${data.value.toFixed(PRECISION_CONFIG.MEAN)}<br/>UCL: ${controlLimits.xbar.ucl.toFixed(PRECISION_CONFIG.MEAN)}<br/>CL: ${controlLimits.xbar.cl.toFixed(PRECISION_CONFIG.MEAN)}<br/>LCL: ${controlLimits.xbar.lcl.toFixed(PRECISION_CONFIG.MEAN)}`
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
         axisLabel: { rotate: 45 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         name: '均值',
+        min: (() => {
+          const dataValues = subgroupData.value.map(d => d.mean)
+          const lowest = Math.min(controlLimits.xbar.lcl, ...dataValues)
+          const highest = Math.max(controlLimits.xbar.ucl, ...dataValues)
+          const padding = (highest - lowest) * 0.05 || 0.5
+          return lowest - padding
+        })(),
+        max: (() => {
+          const dataValues = subgroupData.value.map(d => d.mean)
+          const lowest = Math.min(controlLimits.xbar.lcl, ...dataValues)
+          const highest = Math.max(controlLimits.xbar.ucl, ...dataValues)
+          const padding = (highest - lowest) * 0.05 || 0.5
+          return highest + padding
+        })(),
         axisLabel: {
           formatter: (value: number) => value.toFixed(PRECISION_CONFIG.MEAN)
         }
@@ -707,20 +1021,21 @@ const initCharts = (): void => {
     xrChartInstance = echarts.init(xrChart.value)
     const xrOption: EChartsOption = {
       title: { text: 'X-R控制图 - 极差监控' },
-      tooltip: { 
+      tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
           const data = params[0]
           return `子组: ${data.name}<br/>极差: ${data.value.toFixed(PRECISION_CONFIG.RANGE)}<br/>UCL: ${controlLimits.range.ucl.toFixed(PRECISION_CONFIG.RANGE)}<br/>CL: ${controlLimits.range.cl.toFixed(PRECISION_CONFIG.RANGE)}`
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
         axisLabel: { rotate: 45 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         name: '极差',
         axisLabel: {
@@ -760,20 +1075,21 @@ const initCharts = (): void => {
     sChartInstance = echarts.init(sChart.value)
     const sOption: EChartsOption = {
       title: { text: 'S控制图 - 标准差监控' },
-      tooltip: { 
+      tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
           const data = params[0]
           return `子组: ${data.name}<br/>标准差: ${data.value.toFixed(PRECISION_CONFIG.STD_DEV)}<br/>UCL: ${controlLimits.std.ucl.toFixed(PRECISION_CONFIG.STD_DEV)}<br/>CL: ${controlLimits.std.cl.toFixed(PRECISION_CONFIG.STD_DEV)}`
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
         axisLabel: { rotate: 45 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         name: '标准差',
         axisLabel: {
@@ -812,13 +1128,11 @@ const initCharts = (): void => {
   if (deviationChart.value) {
     deviationChartInstance = echarts.init(deviationChart.value)
     const overallMean = subgroupData.value.reduce((sum, d) => sum + d.mean, 0) / subgroupData.value.length
-    
-    // 格式化整体均值
     const formattedOverallMean = formatNumber(overallMean, PRECISION_CONFIG.MEAN)
-    
+
     const deviationOption: EChartsOption = {
       title: { text: '样本与均值偏离表' },
-      tooltip: { 
+      tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'cross' },
         formatter: (params: any) => {
@@ -829,7 +1143,6 @@ const initCharts = (): void => {
             } else if (param.seriesName === '整体均值') {
               result += `${param.seriesName}: ${param.value.toFixed(PRECISION_CONFIG.MEAN)}<br/>`
             } else if (param.seriesName === '样本点') {
-              // 散点图的value是数组 [x, y]
               const sampleValue = Array.isArray(param.value) ? param.value[1] : param.value
               result += `样本值: ${sampleValue.toFixed(PRECISION_CONFIG.SAMPLE)}<br/>`
             }
@@ -837,13 +1150,14 @@ const initCharts = (): void => {
           return result
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: showDataZoom ? '18%' : '3%', containLabel: true },
+      dataZoom: dataZoomOptions,
       xAxis: {
         type: 'category',
         data: subgroupData.value.map(d => d.subgroupNo),
         axisLabel: { rotate: 45 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         name: '样本值',
         axisLabel: {
@@ -872,7 +1186,7 @@ const initCharts = (): void => {
         {
           name: '样本点',
           type: 'scatter',
-          data: subgroupData.value.flatMap((d, index) => 
+          data: subgroupData.value.flatMap((d, index) =>
             d.samples.map(sample => [index, formatNumber(sample, PRECISION_CONFIG.SAMPLE)])
           ),
           symbolSize: 6,
@@ -886,18 +1200,28 @@ const initCharts = (): void => {
   // 初始化过程能力直方图
   if (histogramChart.value) {
     histogramChartInstance = echarts.init(histogramChart.value)
-    
-    // 生成正态分布数据
+
     const allSamples = subgroupData.value.flatMap(d => d.samples)
+    if (allSamples.length === 0) {
+      // 如果没有样本数据，显示空图表
+      histogramChartInstance.setOption({
+        title: { text: '过程能力直方图' },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', data: [] },
+        yAxis: { type: 'value', name: '频数', min: 0 },
+        series: []
+      })
+      return
+    }
+
     const mean = allSamples.reduce((a, b) => a + b, 0) / allSamples.length
     const std = Math.sqrt(allSamples.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / allSamples.length)
-    
-    // 创建直方图数据
+
     const min = Math.min(...allSamples)
     const max = Math.max(...allSamples)
     const binCount = 9
     const binWidth = (max - min) / binCount
-    
+
     const histogramData: number[] = []
     for (let i = 0; i < binCount; i++) {
       const binStart = min + i * binWidth
@@ -906,27 +1230,47 @@ const initCharts = (): void => {
       histogramData.push(count)
     }
 
-    const bins = Array.from({length: binCount}, (_, i) => 
+    const bins = Array.from({length: binCount}, (_, i) =>
       `${formatNumber(min + i * binWidth, PRECISION_CONFIG.SAMPLE)}-${formatNumber(min + (i + 1) * binWidth, PRECISION_CONFIG.SAMPLE)}`
     )
 
+    // 计算实际占比（每区间数据点占比）
+    const actualPercentages = histogramData.map(count => (count / allSamples.length) * 100)
+
+    // 计算理论正态分布频数
+    const theoreticalData = bins.map((_, i) => {
+      const x = min + (i + 0.5) * binWidth
+      return allSamples.length * (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / std, 2)) * binWidth
+    })
+
     const histogramOption: EChartsOption = {
       title: { text: '过程能力直方图' },
-      tooltip: { 
+      tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
           let result = `区间: ${params[0].name}<br/>`
           params.forEach((param: any) => {
             if (param.seriesName === '实际频数') {
-              result += `频数: ${param.value}<br/>` // 整数，不保留小数
+              result += `频数: ${param.value}<br/>`
+            } else if (param.seriesName === '实际分布') {
+              result += `实际分布: ${param.value.toFixed(1)}%<br/>`
             } else if (param.seriesName === '理论正态分布') {
-              result += `理论分布: ${param.value.toFixed(1)}%<br/>` // 百分比保留1位小数
+              result += `理论正态分布: ${param.value.toFixed(1)}<br/>`
             }
           })
           return result
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      legend: {
+        data: [
+          { name: '实际分布', icon: 'roundRect', itemStyle: { color: '#00ff00' } },
+          { name: '理论正态分布', icon: 'roundRect', itemStyle: { color: '#ff4d4f' } }
+        ],
+        bottom: 0,
+        left: 'center',
+        textStyle: { fontSize: 12 }
+      },
+      grid: { left: '3%', right: '4%', bottom: '18%', containLabel: true },
       xAxis: [
         {
           type: 'category',
@@ -944,7 +1288,6 @@ const initCharts = (): void => {
           type: 'value',
           name: '百分比',
           min: 0,
-          max: 100,
           axisLabel: { formatter: '{value}%' }
         }
       ],
@@ -953,71 +1296,97 @@ const initCharts = (): void => {
           name: '实际频数',
           type: 'bar',
           data: histogramData,
-          itemStyle: { color: '#1890ff' }
+          itemStyle: { color: '#1890ff' },
+          // label: {
+          //   show: true,
+          //   position: 'top',
+          //   formatter: (params: any) => params.value > 0 ? params.value : ''
+          // }
         } as SeriesOption,
         {
           name: '理论正态分布',
           type: 'line',
+          data: theoreticalData.map(v => Number(v.toFixed(1))),
+          lineStyle: { color: '#ff4d4f', width: 2 },
+          itemStyle: { color: '#ff4d4f' },
+          symbol: 'none',
+          smooth: true
+        } as SeriesOption,
+        {
+          name: '实际分布',
+          type: 'line',
           yAxisIndex: 1,
-          data: bins.map((_, i) => {
-            const x = min + (i + 0.5) * binWidth
-            return 100 * (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / std, 2)) * binWidth
-          }),
-          lineStyle: { color: '#fa8c16' },
-          symbol: 'none'
-        } as SeriesOption
+          data: actualPercentages.map(v => Number(v.toFixed(1))),
+          lineStyle: { color: '#00ff00', width: 2 },
+          itemStyle: { color: '#00ff00' },
+          symbol: 'none',
+          smooth: true
+        } as SeriesOption,
       ]
     }
     histogramChartInstance.setOption(histogramOption)
   }
 }
 
-// 生成模拟数据
-const generateMockData = (): void => {
-  subgroupData.value = Array.from({length: 25}, (_, index) => {
-    const baseValue = 10 + Math.random() * 0.5 - 0.25
-    const samples = Array.from({length: 5}, () => baseValue + Math.random() * 0.6 - 0.3)
-    const mean = samples.reduce((a, b) => a + b, 0) / samples.length
-    const stdDev = Math.sqrt(samples.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / samples.length)
-    const range = Math.max(...samples) - Math.min(...samples)
-    
-    return {
-      subgroupNo: `SG${1000 + index}`,
-      samples,
-      mean: Number(mean.toFixed(3)),
-      stdDev: Number(stdDev.toFixed(3)),
-      range: Number(range.toFixed(3))
+// 生命周期
+onMounted(async () => {
+  // 获取工单树数据
+  await fetchWorkOrderTree()
+
+  // 获取任务ID
+  currentTaskId.value = getTaskIdFromRoute()
+
+  if (currentTaskId.value) {
+    loading.value = true
+    try {
+      await fetchControlChartData(currentTaskId.value)
+      await fetchCapabilityData(currentTaskId.value)
+      // 根据任务ID设置级联选择器的值
+      selectedWorkOrderTask.value = findWorkOrderTaskPath(currentTaskId.value)
+      basicInfo.value.workOrderNo = findWorkOrderId(currentTaskId.value)
+    } catch (error) {
+      console.error('初始化数据失败:', error)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  nextTick(() => {
+    if (subgroupData.value.length > 0) {
+      initCharts()
     }
   })
+})
 
-  // 修复：使用index而不是i
-  recentData.value = subgroupData.value.map((d, index) => {
-  const day = 19 + Math.floor(index / 12)
-  const hour = (index * 2) % 24
-  const minute = (index * 5) % 60
-  
-  return {
-    subgroupNo: d.subgroupNo,
-    sample1: formatNumber(d.samples[0] as number, PRECISION_CONFIG.SAMPLE),
-    sample2: formatNumber(d.samples[1] as number, PRECISION_CONFIG.SAMPLE),
-    sample3: formatNumber(d.samples[2] as number, PRECISION_CONFIG.SAMPLE),
-    sample4: formatNumber(d.samples[3] as number, PRECISION_CONFIG.SAMPLE),
-    sample5: formatNumber(d.samples[4] as number, PRECISION_CONFIG.SAMPLE),
-    mean: formatNumber(d.mean, PRECISION_CONFIG.MEAN),
-    stdDev: formatNumber(d.stdDev, PRECISION_CONFIG.STD_DEV),
-    range: formatNumber(d.range, PRECISION_CONFIG.RANGE),
-    inspectionTime: `2024-01-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+// 监听路由参数变化
+watch(() => route.query.taskId, async (newTaskId) => {
+  const taskId = newTaskId ? parseInt(newTaskId as string, 10) : null
+  if (taskId && !isNaN(taskId)) {
+    currentTaskId.value = taskId
+    loading.value = true
+    try {
+      await fetchControlChartData(taskId)
+      await fetchCapabilityData(taskId)
+      // 根据任务ID设置级联选择器的值
+      selectedWorkOrderTask.value = findWorkOrderTaskPath(taskId)
+      basicInfo.value.workOrderNo = findWorkOrderId(currentTaskId.value)
+      nextTick(() => {
+        initCharts()
+      })
+    } catch (error) {
+      console.error('切换任务失败:', error)
+    } finally {
+      loading.value = false
+    }
   }
 })
-}
 
-// 生命周期
-onMounted(() => {
-  generateMockData()
-  nextTick(() => {
-    initCharts()
-  })
-})
+// watch(() => selectedWorkOrderTask.value, (val)=>{
+//   if (val) {
+//     console.log(111111)
+//     basicInfo.value.workOrderNo = findWorkOrderId(parseInt(basicInfo.value.workTaskNo))
+//   }
+// })
 
 onUnmounted(() => {
   xbarChartInstance?.dispose()
@@ -1066,6 +1435,12 @@ window.addEventListener('resize', handleResize)
     align-items: center;
 }
 
+.task-info {
+  font-size: 14px;
+  color: var(--color-dark-text);
+  font-weight: 500;
+}
+
 .operation {
     display: flex;
     gap: 12px;
@@ -1075,7 +1450,7 @@ window.addEventListener('resize', handleResize)
   display: flex;
   align-items: center;
   gap: 8px;
-  
+
   label {
     font-size: 14px;
     color: var(--color-dark-text);
@@ -1111,7 +1486,7 @@ window.addEventListener('resize', handleResize)
     .status-text {
     font-size: 16px;
     font-weight: 500;
-    
+
     &.normal { color: #52c41a; }
     &.warning { color: #faad14; }
     &.out-of-control { color: #ff4d4f; }
@@ -1126,13 +1501,13 @@ window.addEventListener('resize', handleResize)
   align-items: flex-start;
   gap: 8px;
   padding: 8px;
-  
+
   .label {
     font-size: 12px;
     color: var(--color-dark-text);
     opacity: 0.7;
   }
-  
+
   .value {
     font-size: 14px;
     color: var(--color-dark-text);
@@ -1146,7 +1521,7 @@ window.addEventListener('resize', handleResize)
   display: flex;
   flex-direction: column;
   border-radius: 8px;
-  
+
   .header {
     color: var(--color-dark-text);
     width: 100%;
@@ -1157,7 +1532,7 @@ window.addEventListener('resize', handleResize)
     align-items: center;
     border-bottom: 1.5px solid var(--color-model-bg);
   }
-  
+
   .content {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1175,24 +1550,24 @@ window.addEventListener('resize', handleResize)
   background: var(--color-model-bg);
   border-radius: 6px;
   height: 128px;
-  
+
   .metric-label {
     font-size: 14px;
     color: var(--color-dark-text);
     opacity: 0.7;
   }
-  
+
   .metric-value {
     font-size: 24px;
     font-weight: bold;
     color: var(--color-Hlight-text);
   }
-  
+
   .metric-level {
     font-size: 12px;
     padding: 2px 8px;
     border-radius: 4px;
-    
+
     &.level-a { background: #f6ffed; color: #52c41a; }
     &.level-b { background: #f0f9ff; color: #1890ff; }
     &.level-c { background: #fff7e6; color: #fa8c16; }
@@ -1216,24 +1591,24 @@ window.addEventListener('resize', handleResize)
   flex-direction: row;
   align-items: stretch;
   gap: 0;
-  
+
   .chart-item {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    
+
     .chart-content {
       flex: 1;
     }
   }
-  
+
   .metric-item-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    
+
     .metric-content {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -1243,13 +1618,13 @@ window.addEventListener('resize', handleResize)
       align-content: start;
     }
   }
-  
+
   .divider-vertical {
     width: 1px;
     background-color: var(--color-model-bg);
     margin: 16px 0;
   }
-  
+
   .header {
     color: var(--color-dark-text);
     padding: 16px;
@@ -1271,7 +1646,7 @@ window.addEventListener('resize', handleResize)
   .info-card {
     overflow: visible !important;
   }
-  
+
   // 图表行垂直排列，避免重叠
   .chart-row {
     display: flex !important;
@@ -1280,7 +1655,7 @@ window.addEventListener('resize', handleResize)
     overflow-y: visible !important;
     width: 100% !important;
   }
-  
+
   // 每个图表项占满宽度
   .chart-item,
   .metric-item-wrapper {
@@ -1289,18 +1664,18 @@ window.addEventListener('resize', handleResize)
     flex: none !important;
     margin-bottom: 20px !important;
   }
-  
+
   // 隐藏垂直分割线
   .divider-vertical {
     display: none !important;
   }
-  
+
   // 图表内容容器
   .chart-content {
     width: 100% !important;
     overflow: visible !important;
   }
-  
+
   // 图表容器必须明确尺寸
   .chart-container {
     width: 100% !important;
@@ -1310,7 +1685,7 @@ window.addEventListener('resize', handleResize)
     visibility: visible !important;
     opacity: 1 !important;
   }
-  
+
   // 过程能力指标内容
   .metric-content {
     width: 100% !important;
@@ -1318,32 +1693,32 @@ window.addEventListener('resize', handleResize)
     flex-wrap: wrap !important;
     gap: 10px !important;
   }
-  
+
   .metric-item {
     flex: 1 1 45% !important;
     min-width: 120px !important;
   }
-  
+
   // 工具栏移动端垂直布局
   .tool-bar {
     flex-direction: column !important;
     gap: 10px !important;
   }
-  
+
   .filter {
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
-  
+
   .filter-item {
     width: 100% !important;
   }
-  
+
   .filter-item label {
     display: block !important;
     margin-bottom: 4px !important;
   }
-  
+
   .filter-item .el-select {
     width: 100% !important;
   }
@@ -1354,7 +1729,7 @@ window.addEventListener('resize', handleResize)
   display: flex;
   align-items: center;
   gap: 16px;
-  
+
   .rule-desc {
     color: var(--color-Hlight-text);
     cursor: pointer;
@@ -1375,12 +1750,12 @@ window.addEventListener('resize', handleResize)
 
 .rule-tooltip {
   max-width: 300px;
-  
+
   h4 {
     margin: 0 0 8px 0;
     color: var(--color-dark-text);
   }
-  
+
   p {
     margin: 4px 0;
     font-size: 12px;
@@ -1393,6 +1768,40 @@ window.addEventListener('resize', handleResize)
   border: solid 0.5px var(--color-model-bg);
   color: transparent;
   height: 0;
+}
+
+/* 无数据提示样式 */
+.no-data-placeholder {
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  border-radius: 8px;
+}
+
+.no-data-content {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-data-icon {
+  font-size: 64px;
+  color: #c0c4cc;
+  margin-bottom: 16px;
+}
+
+.no-data-text {
+  font-size: 18px;
+  color: #606266;
+  margin: 0 0 8px 0;
+}
+
+.no-data-hint {
+  font-size: 14px;
+  color: #909399;
+  margin: 0;
 }
 
 /* ====================================
@@ -1418,12 +1827,12 @@ window.addEventListener('resize', handleResize)
 
   .filter-item {
     width: 100%;
-    
+
     label {
       width: 60px;
       font-size: 13px;
     }
-    
+
     .el-select {
       width: calc(100% - 70px) !important;
     }
@@ -1433,7 +1842,7 @@ window.addEventListener('resize', handleResize)
     width: 100%;
     justify-content: center;
     gap: 10px;
-    
+
     .el-button {
       flex: 1;
       font-size: 13px;
@@ -1446,7 +1855,7 @@ window.addEventListener('resize', handleResize)
       flex-direction: column;
       gap: 8px;
       padding: 12px;
-      
+
       h3 {
         font-size: 16px;
         margin: 0;
@@ -1462,11 +1871,11 @@ window.addEventListener('resize', handleResize)
       min-width: calc(50% - 8px);
       flex: 0 0 calc(50% - 8px);
       padding: 8px;
-      
+
       .label {
         font-size: 12px;
       }
-      
+
       .value {
         font-size: 13px;
       }
@@ -1476,18 +1885,18 @@ window.addEventListener('resize', handleResize)
   // 图表区域
   .chart-section {
     padding: 12px;
-    
+
     .chart-header {
       flex-direction: column;
       gap: 8px;
       padding: 10px;
-      
+
       h4 {
         font-size: 15px;
         margin: 0;
       }
     }
-    
+
     .chart-container {
       height: 300px;
     }
@@ -1496,10 +1905,10 @@ window.addEventListener('resize', handleResize)
   // 统计表格
   .stats-table {
     padding: 12px;
-    
+
     table {
       font-size: 12px;
-      
+
       th, td {
         padding: 8px 4px;
       }
@@ -1510,6 +1919,23 @@ window.addEventListener('resize', handleResize)
   .table-content {
     padding: 10px;
     overflow-x: auto;
+  }
+
+  // 无数据提示
+  .no-data-placeholder {
+    min-height: 300px;
+  }
+
+  .no-data-content {
+    padding: 40px 20px;
+  }
+
+  .no-data-icon {
+    font-size: 48px;
+  }
+
+  .no-data-text {
+    font-size: 16px;
   }
 }
 
@@ -1552,6 +1978,26 @@ window.addEventListener('resize', handleResize)
 
   .stats-table table {
     font-size: 11px;
+  }
+
+  .no-data-placeholder {
+    min-height: 200px;
+  }
+
+  .no-data-content {
+    padding: 30px 15px;
+  }
+
+  .no-data-icon {
+    font-size: 40px;
+  }
+
+  .no-data-text {
+    font-size: 14px;
+  }
+
+  .no-data-hint {
+    font-size: 12px;
   }
 }
 </style>

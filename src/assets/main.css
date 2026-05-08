@@ -20,13 +20,13 @@ a,
 }
 
 @media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
   #app {
     display: grid;
     width: 100%;
   }
+}
+
+/* Make sure ElMessage renders above the fixed TopBar (z-index: 9999) */
+.el-message-wrapper {
+  z-index: 99999 !important;
 }

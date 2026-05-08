@@ -9,7 +9,7 @@
                 <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">{{ isAddMode ? '新增任务' : '任务详情' }}</span>
             </div>
             <div style="display: flex; gap: 10px;">
-                <el-button type="primary" v-if="isEdit" @click="handleSave">
+                <el-button type="primary" v-if="isEdit" :loading="saving" @click="handleSaveDebounced">
                     <span style="font-size: 18px;">保存任务</span>
                 </el-button>
                 <el-button @click="$emit('close')">
@@ -23,36 +23,36 @@
             <div class="divider"></div>
             <div class="stat-card content">
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工作任务号</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.tid"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工作任务号</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.tid" placeholder="请输入工作任务号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工单号</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.ticket"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工单号</span>
+                    <el-input :disabled="!isEdit || isAddMode" v-model="selectedItem.ticket" placeholder="请输入工单号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">行号</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.line"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>行号</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.lineNo" placeholder="请输入行号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">产品编码</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.pid"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>产品编码</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pid" placeholder="请输入产品编码"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">产品名称</span>
-                    <el-input :disabled="!isEdit" v-model="selectedItem.pname"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>产品名称</span>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pname" placeholder="请输入产品名称"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">规格/型号</span>
-                    <el-input :disabled="!isEdit" v-model="spec"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>规格/型号</span>
+                    <el-input :disabled="!isEdit" v-model="spec" placeholder="请输入规格/型号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">计量单位</span>
-                    <el-input :disabled="!isEdit" v-model="unit"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>计量单位</span>
+                    <el-input :disabled="!isEdit" v-model="unit" placeholder="请输入计量单位"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工艺路线名称</span>
-                    <el-input :disabled="!isEdit" v-model="technic"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工艺路线名称</span>
+                    <el-input :disabled="!isEdit" v-model="technic" placeholder="请输入工艺路线名称"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">创建时间</span>
@@ -60,13 +60,13 @@
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text); display: inline-flex;gap:5px;">任务状态
-                        <div class="status-badge status-done" v-if="selectedItem.status==='0'">启用</div>
-                        <div class="status-badge badge-done" v-if="selectedItem.status!=='0'">停止</div>
+                        <div class="status-badge status-done" v-if="selectedItem.status==='1'">启用</div>
+                        <div class="status-badge badge-done" v-if="selectedItem.status!=='1'">停止</div>
                     </span>
                     <el-switch
                         v-model="curStatus"
                         :disabled="!isEdit"
-                        @change="$emit('change')"
+                        @change="handleTaskStatusChange"
                     />
                 </div>
             </div>
@@ -77,42 +77,44 @@
             </div>
             <div class="stat-card content">
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工序序号</span>
-                    <el-input :disabled="!isEdit" v-model="techList.techid"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工序序号</span>
+                    <el-input :disabled="!isEdit" v-model="techList.techid" type="number" step="1" placeholder="请输入工序序号"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">工序作业名称</span>
-                    <el-input :disabled="!isEdit" v-model="techList.techname"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>工序作业名称</span>
+                    <el-input :disabled="!isEdit" v-model="techList.techname" placeholder="请输入工序作业名称" maxlength="100"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">质量特性</span>
-                    <el-input :disabled="!isEdit" v-model="techList.ch"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>质量特性</span>
+                    <el-input :disabled="!isEdit" v-model="techList.ch" placeholder="请输入质量特性" maxlength="100"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">目标标准值</span>
-                    <el-input :disabled="!isEdit" v-model="techList.standard"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>目标标准值</span>
+                    <el-input :disabled="!isEdit" v-model="techList.standard" type="number" step="0.000001" placeholder="请输入目标标准值"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">USL</span>
-                    <el-input :disabled="!isEdit" v-model="techList.usl"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>USL</span>
+                    <el-input :disabled="!isEdit" v-model="techList.usl" type="number" step="0.000001" placeholder="请输入USL"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">LSL</span>
-                    <el-input :disabled="!isEdit" v-model="techList.lsl"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>LSL</span>
+                    <el-input :disabled="!isEdit" v-model="techList.lsl" type="number" step="0.000001" placeholder="请输入LSL"></el-input>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">组内样本量</span>
-                    <el-input :disabled="!isEdit" v-model="techList.set"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>组内样本量</span>
+                    <el-input :disabled="!isEdit" v-model="techList.set" type="number" min="5" max="25" step="1" placeholder="5-25" />
+                    <span v-if="subgroupSizeError && isEdit" class="validation-error">{{ subgroupSizeError }}</span>
                 </div>
                 <div class="stat-card sub">
-                    <span style="color: var(--color-dark-text);">总体样本量</span>
-                    <el-input :disabled="!isEdit" v-model="techList.total"></el-input>
+                    <span style="color: var(--color-dark-text);"><span class="required">*</span>总体样本量</span>
+                    <el-input :disabled="!isEdit" v-model="techList.total" type="number" min="5" step="1" placeholder="组内样本量的整倍数" />
+                    <span v-if="totalSampleSizeError && isEdit" class="validation-error">{{ totalSampleSizeError }}</span>
                 </div>
-                <!-- <div class="stat-card sub">
+                <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">作业设备编码</span>
                     <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div>
-                <div class="stat-card sub">
+                <!-- <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">仪器/治具编码</span>
                     <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div> -->
@@ -120,7 +122,8 @@
         </div>
         <div class="measure-table">
             <div class="stat-card header">
-                <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid || ""+`-${selectedItem.pname ?? ""}` }}</span>
+                <span v-if="!isAddMode" style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid || ""+`-${selectedItem.pname ?? ""}` }}</span>
+                <span v-else style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">测量数据表</span> 
                 <!-- PC端按钮布局 -->
                 <div v-if="!isMobile" style="display: flex; align-items: center; gap: 8px;">
                      <el-button type="primary" plain :disabled="!isEdit" @click="addNewRow">
@@ -185,7 +188,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="datetime" label="日期时间" align="center">
+                    <el-table-column prop="datetime" label="日期时间" align="center" width="120">
                     <template #default="scope">
                         <el-input
                           v-if="scope.row.isNew"
@@ -196,73 +199,17 @@
                     </template>
                     </el-table-column>
 
-                    <!-- 五个样本值 -->
-                    <el-table-column prop="value1" label="值1" align="center">
+                    <!-- 动态样本值列 (根据组内样本量) -->
+                    <el-table-column v-for="colIdx in valueColumnIndexes" :key="colIdx" :label="'值' + (colIdx + 1)" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
-                        v-model.number="scope.row.value1"
+                        v-model.number="scope.row.values[colIdx]"
                         size="small"
                         @input="calcNewRow(scope.row)"
                         />
-                        <span v-else :class="getDataPointClass(scope.row, 0)">
-                        {{ scope.row.value1 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value2" label="值2" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value2"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 1)">
-                        {{ scope.row.value2 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value3" label="值3" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value3"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 2)">
-                        {{ scope.row.value3 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value4" label="值4" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value4"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 3)">
-                        {{ scope.row.value4 }}
-                        </span>
-                    </template>
-                    </el-table-column>
-
-                    <el-table-column prop="value5" label="值5" align="center">
-                    <template #default="scope">
-                        <el-input
-                        v-if="scope.row.isNew"
-                        v-model.number="scope.row.value5"
-                        size="small"
-                        @input="calcNewRow(scope.row)"
-                        />
-                        <span v-else :class="getDataPointClass(scope.row, 4)">
-                        {{ scope.row.value5 }}
+                        <span v-else :class="getDataPointClass(scope.row, colIdx)">
+                        {{ scope.row.values[colIdx] }}
                         </span>
                     </template>
                     </el-table-column>
@@ -361,7 +308,7 @@
                     <el-pagination
                         v-model:current-page="currentPage"
                         v-model:page-size="pageSize"
-                        :page-sizes="[10, 20, 50, 100]"
+                        :page-sizes="[5, 10, 20, 50, 100]"
                         :small="true"
                         :disabled="false"
                         :background="true"
@@ -377,8 +324,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { ElMessage } from 'element-plus';
+import { ref, computed, onMounted, onBeforeUnmount, watch, reactive, nextTick } from 'vue'
+import { showSuccess, showError, showWarning, showInfo } from '@/utils/message';
 import { MoreFilled } from '@element-plus/icons-vue';
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
@@ -387,6 +334,8 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useTime } from '@/utils/clock';
 import { formatTimeStamp } from '@/utils/functions';
+import { useDebounceFn } from '@/utils/functions';
+import { getTaskDetail, getMeasurements, createTask, createMeasurementBatch, updateTask, updateMeasurement, updateTaskStatus, getControlChart, getCapability } from '@/api/modules';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
 
@@ -425,7 +374,7 @@ const handleCommand = (command: string) => {
 }
 
 interface data {
-    line?: number;
+    lineNo?: number;
     ticket?: string;
     pid?: string;
     pname?: string;
@@ -435,6 +384,10 @@ interface data {
     status?: string;
     stime?: string;
     ctime?: string;
+    workOrderId?: number;
+    _rawData?: {
+        id?: number;
+    };
 }
 
 const prop = defineProps<{
@@ -445,43 +398,419 @@ const prop = defineProps<{
 
 // 计算属性：判断是否为新增模式
 const isAddMode = computed(() => {
-    return prop.isEdit && (!prop.selectedItem || !prop.selectedItem.tid)
+    return prop.isEdit && (!prop.selectedItem?._rawData?.id)
 })
-
-// 保存任务处理函数
-const handleSave = () => {
-    // 收集表单数据
-    const taskData = {
-        ...prop.selectedItem,
-        spec: spec.value,
-        unit: unit.value,
-        technic: technic.value,
-        techList: techList.value,
-        status: curStatus.value ? '0' : '1'
+// 必填字段验证（除作业设备编码外均为必填）
+const validateRequired = () => {
+    const fields: { label: string; value: any }[] = [
+        { label: '工作任务号', value: prop.selectedItem.tid },
+        { label: '工单号', value: prop.selectedItem.ticket },
+        { label: '行号', value: prop.selectedItem.lineNo },
+        { label: '产品编码', value: prop.selectedItem.pid },
+        { label: '产品名称', value: prop.selectedItem.pname },
+        { label: '规格/型号', value: spec.value },
+        { label: '计量单位', value: unit.value },
+        { label: '工艺路线名称', value: technic.value },
+        { label: '工序序号', value: techList.value.techid },
+        { label: '工序作业名称', value: techList.value.techname },
+        { label: '质量特性', value: techList.value.ch },
+        { label: '目标标准值', value: techList.value.standard },
+        { label: '组内样本量', value: techList.value.set },
+        { label: '总体样本量', value: techList.value.total },
+        { label: 'USL', value: techList.value.usl },
+        { label: 'LSL', value: techList.value.lsl },
+    ]
+    for (const field of fields) {
+        if (field.value === '' || field.value == null || field.value === undefined) {
+            showError(`请填写必填字段：${field.label}`)
+            return false
+        }
     }
-    // 触发保存事件
-    emit('save', taskData)
-    console.log('保存任务:', taskData)
+    return true
 }
 
+const saving = ref(false)
+
+// 保存任务处理函数（防抖包装）
+const handleSave = async () => {
+    // 必填字段验证
+    if (!validateRequired()) return
+    saving.value = true
+    try {
+
+        // 验证组内样本量
+        const ss = parseInt(techList.value.set)
+        if (techList.value.set !== '' && techList.value.set != null) {
+            if (isNaN(ss) || ss < 5 || ss > 25) {
+                showError('组内样本量需在 5-25 之间')
+                return
+            }
+        }
+        // 验证总体样本量
+        const ts = parseInt(techList.value.total)
+        if (techList.value.total !== '' && techList.value.total != null) {
+            const effectiveSs = ss || 5
+            if (isNaN(ts) || ts < effectiveSs) {
+                showError(`总体样本量不能小于组内样本量 (${effectiveSs})`)
+                return
+            }
+            if (ts % effectiveSs !== 0) {
+                showError(`总体样本量必须是组内样本量 (${effectiveSs}) 的整倍数`)
+                return
+            }
+        }
+        if (isAddMode.value) {
+            // ===== 新增模式 =====
+            const taskData: any = {
+                workOrderId: prop.selectedItem.workOrderId,
+                taskNo: prop.selectedItem.tid,
+                lineNo: prop.selectedItem.lineNo != null ? parseInt(String(prop.selectedItem.lineNo)) : undefined,
+                productCode: prop.selectedItem.pid,
+                productName: prop.selectedItem.pname,
+                processName: techList.value.techname,
+                processSequence: techList.value.techid,
+                spec: spec.value,
+                unit: unit.value,
+                processRouteName: technic.value,
+                qualityChar: techList.value.ch,
+                targetValue: techList.value.standard ? parseFloat(techList.value.standard) : undefined,
+                usl: techList.value.usl ? parseFloat(techList.value.usl) : undefined,
+                lsl: techList.value.lsl ? parseFloat(techList.value.lsl) : undefined,
+                subgroupSize: techList.value.set ? parseInt(techList.value.set) : undefined,
+                totalSampleSize: techList.value.total ? parseInt(techList.value.total) : undefined,
+                equipmentCode: prop.selectedItem.devid || null,
+                instrumentCode: prop.selectedItem.devid || null,
+            }
+
+            const result = await createTask(taskData)
+            if (result.code >= 400) {
+                showError(result.message || result.msg || '创建任务失败')
+                return
+            }
+            const newTaskId = result.data?.id
+
+            // 若有测量数据，批量创建
+            if (sampleData.value.length > 0) {
+                const measurementItems = sampleData.value.map(row => ({
+                    sampleValues: row.values,
+                    groupNo: parseInt(row.subgroupId) || undefined,
+                    measureTime: row.datetime || undefined,
+                    operator: row.operator || undefined,
+                    remark: row.remark || undefined,
+                }))
+                const batchRes = await createMeasurementBatch(String(newTaskId), measurementItems)
+                if (batchRes.code >= 400) {
+                    showError(batchRes.message || batchRes.msg || '创建测量数据失败')
+                    return
+                }
+                if (batchRes.data?.errors?.length > 0) {
+                    showError('数据创建失败: ' + batchRes.data.errors.join('; '))
+                    return
+                }
+            }
+
+            // 刷新页面数据（新增模式无法用 taskId computed 刷新，直接跳过）
+            // 通知父组件
+            emit('save', { mode: 'create', taskId: newTaskId })
+            showSuccess(result.msg || '任务创建成功')
+        } else {
+            // ===== 编辑模式 =====
+            const taskId = prop.selectedItem._rawData?.id
+            if (!taskId) {
+                showError('缺少任务ID，无法更新')
+                return
+            }
+
+            const updateData: any = {
+                taskNo: prop.selectedItem.tid,
+                lineNo: prop.selectedItem.lineNo != null ? parseInt(String(prop.selectedItem.lineNo)) : undefined,
+                productCode: prop.selectedItem.pid,
+                productName: prop.selectedItem.pname,
+                processName: techList.value.techname,
+                processSequence: techList.value.techid,
+                spec: spec.value,
+                unit: unit.value,
+                processRouteName: technic.value,
+                qualityChar: techList.value.ch,
+                targetValue: techList.value.standard ? parseFloat(techList.value.standard) : undefined,
+                usl: techList.value.usl ? parseFloat(techList.value.usl) : undefined,
+                lsl: techList.value.lsl ? parseFloat(techList.value.lsl) : undefined,
+                subgroupSize: techList.value.set ? parseInt(techList.value.set) : undefined,
+                totalSampleSize: techList.value.total ? parseInt(techList.value.total) : undefined,
+                equipmentCode: prop.selectedItem.devid || null,
+                instrumentCode: prop.selectedItem.devid || null,
+            }
+
+            // 更新任务基本信息
+            const res = await updateTask(String(taskId), updateData)
+            if (res.code >= 400) {
+                showError(res.message || res.msg || '更新任务失败')
+                return
+            }
+
+            // 测量数据差异处理
+            const newMeasurementItems: any[] = []
+            for (const row of sampleData.value) {
+                if (row.id && !row.id.startsWith('sample-') && !row.id.startsWith('new-') && !row.id.startsWith('import-')) {
+                    // 已有行：与原始数据对比，有差异则更新
+                    const originalRow = originalData.value?.sampleData?.find((r: any) => r.id === row.id)
+                    if (originalRow) {
+                        const currentForCompare = {
+                            sampleValues: row.values,
+                            measureTime: row.datetime,
+                            operator: row.operator,
+                            remark: row.remark,
+                            enabled: row.enabled ? 1 : 0,
+                        }
+                        const originalForCompare = {
+                            sampleValues: originalRow.values,
+                            measureTime: originalRow.datetime,
+                            operator: originalRow.operator,
+                            remark: originalRow.remark,
+                            enabled: originalRow.enabled ? 1 : 0,
+                        }
+                        if (JSON.stringify(currentForCompare) !== JSON.stringify(originalForCompare)) {
+                            const updateRes = await updateMeasurement(String(row.id), {
+                                sampleValues: row.values,
+                                measureTime: row.datetime || undefined,
+                                operator: row.operator || undefined,
+                                remark: row.remark || undefined,
+                                enabled: row.enabled ? 1 : 0,
+                            })
+                            if (updateRes.code >= 400) {
+                                showError(updateRes.message || updateRes.msg || '更新测量数据失败')
+                                return
+                            }
+                        }
+                    }
+                } else {
+                    // 新增行：收集到数组中
+                    newMeasurementItems.push({
+                        sampleValues: row.values,
+                        groupNo: parseInt(row.subgroupId) || undefined,
+                        measureTime: row.datetime || undefined,
+                        operator: row.operator || undefined,
+                        remark: row.remark || undefined,
+                        enabled: row.enabled ? 1 : 0,
+                    })
+                }
+            }
+
+            // 批量创建新增的测量数据
+            if (newMeasurementItems.length > 0) {
+                const batchRes = await createMeasurementBatch(String(taskId), newMeasurementItems)
+                if (batchRes.code >= 400) {
+                    showError(batchRes.message || batchRes.msg || '创建测量数据失败')
+                    return
+                }
+                if (batchRes.data?.errors?.length > 0) {
+                    showError('数据创建失败: ' + batchRes.data.errors.join('; '))
+                    return
+                }
+            }
+
+            // 刷新页面数据
+            await fetchTaskDetail()
+            await fetchMeasurements()
+
+            // 更新原始数据副本
+            saveOriginalData()
+
+            // 通知父组件
+            emit('save', { mode: 'update', taskId })
+            showSuccess(res.msg || '任务更新成功')
+        }
+    } catch (error: any) {
+        console.error('保存失败:', error)
+        const status = error.response?.status
+        const apiMsg = error.response?.data?.msg || error.response?.data?.message
+        if (apiMsg) {
+            showError(apiMsg)
+        } else if (status === 400) {
+            showError('请求参数有误，请检查必填字段')
+        } else if (status === 404) {
+            showError('任务不存在，请刷新后重试')
+        } else if (status === 500) {
+            showError('服务器内部错误，请稍后重试')
+        } else if (error.message?.includes('timeout')) {
+            showError('请求超时，请检查网络连接')
+        } else {
+            showError('保存失败: ' + (error.message || '未知错误'))
+        }
+    } finally {
+        saving.value = false
+    }
+}
 const emit = defineEmits(['close','change', 'save'])
 
-const spec = ref('Ø50×30')
-const unit = ref('mm')
-const technic = ref('车削→钻孔→热处理→磨削')
+// 防抖保存
+const handleSaveDebounced = useDebounceFn(handleSave, 500)
+
+const spec = ref('')
+const unit = ref('')
+const technic = ref('')
 const techList = ref({
-    techid: 'SW251015001',
-    techname: '常规机加工',
-    ch: '外径',
-    standard: '50',
-    usl: '50',
-    lsl: '50',
-    set: '5',
-    total: '5',
+    techid: '',
+    techname: '',
+    ch: '',
+    standard: '',
+    usl: '',
+    lsl: '',
+    set: '',
+    total: '',
 })
 
-watch(()=>isAddMode.value, (val)=> {
-  if (val) {
+// 控制限数据（用于状态判断）
+const controlLimits = ref<{ ucl: number; cl: number; lcl: number } | null>(null)
+const sigmaValue = ref<number>(0)
+
+// 任务ID
+const taskId = computed(() => prop.selectedItem?._rawData?.id)
+
+// 获取任务详情
+const fetchTaskDetail = async () => {
+    if (!taskId.value) return
+    try {
+        const res = await getTaskDetail(String(taskId.value))
+        if (res.code === 200 && res.data) {
+            const data = res.data
+            spec.value = data.spec || ''
+            unit.value = data.unit || ''
+            technic.value = data.processRouteName || ''
+            techList.value = {
+                techid: data.processSequence || '',
+                techname: data.processName || '',
+                ch: data.qualityChar || '',
+                standard: data.targetValue?.toString() || '',
+                usl: data.usl?.toString() || '',
+                lsl: data.lsl?.toString() || '',
+                set: data.subgroupSize?.toString() || '',
+                total: data.totalSampleSize?.toString() || '',
+            }
+        }
+    } catch (error) {
+        console.error('获取任务详情失败:', error)
+        showError('获取任务详情失败')
+    }
+}
+
+// 获取控制限和sigma数据
+const fetchControlLimitsAndSigma = async () => {
+    if (!taskId.value) return
+    try {
+        const [controlRes, capabilityRes] = await Promise.all([
+            getControlChart(String(taskId.value)),
+            getCapability(String(taskId.value))
+        ])
+        if (controlRes.code === 200 && controlRes.data?.limits?.xbar) {
+            controlLimits.value = {
+                ucl: controlRes.data.limits.xbar.ucl,
+                cl: controlRes.data.limits.xbar.cl,
+                lcl: controlRes.data.limits.xbar.lcl
+            }
+        } else {
+            controlLimits.value = null
+        }
+        if (capabilityRes.code === 200 && capabilityRes.data) {
+            sigmaValue.value = capabilityRes.data.sigma || 0
+        } else {
+            sigmaValue.value = 0
+        }
+    } catch (error) {
+        console.error('获取控制限和sigma数据失败:', error)
+        controlLimits.value = null
+        sigmaValue.value = 0
+    }
+}
+
+const judgeStatus = (value: number): '正常' | '警告' | '异常' => {
+    if (!controlLimits.value || sigmaValue.value === 0) return '正常'
+    const { ucl, cl, lcl } = controlLimits.value
+    const sigma = sigmaValue.value
+    if (value > ucl || value < lcl) return '异常'
+    if (value > cl + sigma || value < cl - sigma) return '警告'
+    return '正常'
+}
+
+// 获取测量数据
+const fetchMeasurements = async () => {
+    if (!taskId.value) return
+    try {
+        const res = await getMeasurements(String(taskId.value))
+        if (res.code === 200 && res.data) {
+            const groupMeans: number[] = []
+            const groupRanges: number[] = []
+            
+            sampleData.value = res.data.map((item: any, index: number) => {
+                const rawValues = item.sampleValues || []
+                const n = subgroupSizeNum.value
+                // 根据组内样本量调整数组长度
+                const values: (number | null)[] = []
+                for (let i = 0; i < n; i++) {
+                    values.push(rawValues[i] != null ? rawValues[i] : null)
+                }
+                const validValues = values.filter((v: number | null): v is number => v != null)
+                const mean = validValues.length > 0
+                    ? validValues.reduce((a: number, b: number) => a + b, 0) / validValues.length
+                    : 0
+                const range = validValues.length > 1
+                    ? Math.max(...validValues) - Math.min(...validValues)
+                    : 0
+
+                groupMeans.push(mean)
+                groupRanges.push(range)
+
+                const status = judgeStatus(mean)
+
+                return {
+                    id: item.id?.toString() || `sample-${index + 1}`,
+                    subgroupId: item.groupNo?.toString() || `SG${100 + index + 1}`,
+                    datetime: item.measureTime ? formatDateTime(item.measureTime) : '',
+                    values,
+                    mean: parseFloat(mean.toFixed(2)),
+                    range: parseFloat(range.toFixed(2)),
+                    status,
+                    operator: item.operator || '',
+                    remark: item.remark || '',
+                    enabled: item.enabled === 1
+                }
+            })
+            
+            // 计算整体均值和极差
+            if (groupMeans.length > 0) {
+                overallMean.value = parseFloat((groupMeans.reduce((sum, val) => sum + val, 0) / groupMeans.length).toFixed(2))
+                overallRange.value = parseFloat((groupRanges.reduce((sum, val) => sum + val, 0) / groupRanges.length).toFixed(2))
+            }
+        }
+    } catch (error) {
+        console.error('获取测量数据失败:', error)
+        showError('获取测量数据失败')
+    }
+}
+
+// 格式化日期时间
+const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    const second = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+}
+
+// 监听任务切换，获取任务详情和测量数据
+watch(()=>prop.selectedItem, async (val)=> {
+  if (val && val._rawData?.id) {
+    // 获取任务详情和测量数据
+    await fetchTaskDetail()
+    await fetchControlLimitsAndSigma()
+    await fetchMeasurements()
+    saveOriginalData()
+  } else if (isAddMode.value) {
+    // 新增模式
     spec.value = ''
     unit.value = ''
     technic.value = ''
@@ -496,26 +825,67 @@ watch(()=>isAddMode.value, (val)=> {
       total: '',
     }
     sampleData.value = []
+    overallMean.value = 0
+    overallRange.value = 0
   }
-})
+}, { immediate: true })
 
 interface SampleData {
   id: string
   subgroupId: string
   datetime: string
-  value1: number
-  value2: number
-  value3: number
-  value4: number
-  value5: number
-  mean: number
-  range: number
+  values: (number | null)[]
+  mean: number | null
+  range: number | null
   status: '正常' | '警告' | '异常'
   operator: string
   remark: string
   enabled: boolean
   isNew?: boolean
 }
+
+// 组内样本量数字计算属性
+const subgroupSizeNum = computed(() => {
+  const val = parseInt(techList.value.set)
+  if (isNaN(val) || val < 5) return 5
+  if (val > 25) return 25
+  return val
+})
+
+// 总体样本量数字计算属性
+const totalSampleSizeNum = computed(() => {
+  const val = parseInt(techList.value.total)
+  if (isNaN(val)) return Math.max(200, subgroupSizeNum.value)
+  return val
+})
+
+// 动态值列索引
+const valueColumnIndexes = computed(() => {
+  return Array.from({ length: subgroupSizeNum.value }, (_, i) => i)
+})
+
+// 组内样本量错误提示
+const subgroupSizeError = computed(() => {
+  const val = techList.value.set
+  if (val === '' || val == null) return ''
+  const num = parseInt(val)
+  if (isNaN(num)) return '请输入有效整数'
+  if (num < 5 || num > 25) return '组内样本量需在 5-25 之间'
+  return ''
+})
+
+// 总体样本量错误提示
+const totalSampleSizeError = computed(() => {
+  const val = techList.value.total
+  if (val === '' || val == null) return ''
+  const num = parseInt(val)
+  if (isNaN(num)) return '请输入有效整数'
+  const ss = parseInt(techList.value.set) || 5
+  if (num < ss) return `总体样本量不能小于组内样本量 (${ss})`
+  if (num % ss !== 0) return `总体样本量必须是组内样本量 (${ss}) 的整倍数`
+  return ''
+})
+
 
 // 响应式数据
 const sampleData = ref<SampleData[]>([])
@@ -603,78 +973,35 @@ const tableData = computed(() => [
   ...pagedData.value
 ])
 
-const curStatus = computed(() => {
-    return prop.selectedItem.status === '0'
+const curStatus = computed({
+    get: () => prop.selectedItem.status === '1',
+    set: (val: boolean) => {
+        prop.selectedItem.status = val ? '1' : '0'
+    }
 })
 
-// 加载数据
-const loadData = () => {
-  // 固定示例数据
-  const sampleGroups = !isAddMode.value ? [
-    { id: '样本组1', values: [42.64, 48.02, 54.06, 57.82, 62.40] },
-    { id: '样本组2', values: [57.82, 59.28, 40.00, 47.00, 49.92] },
-    { id: '样本组3', values: [50.96, 45.12, 59.28, 43.00, 38.40] },
-    { id: '样本组4', values: [41.82, 40.00, 62.40, 59.28, 53.00] },
-    { id: '样本组5', values: [38.40, 43.00, 61.20, 41.82, 62.40] },
-    { id: '样本组6', values: [48.02, 53.00, 41.00, 48.00, 60.00] },
-    { id: '样本组7', values: [49.00, 55.12, 41.00, 53.76, 55.00] },
-    { id: '样本组8', values: [62.40, 60.00, 41.82, 59.28, 62.40] },
-    { id: '样本组9', values: [57.20, 47.04, 53.04, 57.82, 41.82] },
-    { id: '样本组10', values: [57.12, 46.80, 54.06, 38.40, 53.04] }
-  ] : []
+const handleTaskStatusChange = async () => {
+    try {
+        const taskId = prop.selectedItem._rawData?.id
+        if (!taskId) {
+            showError('任务ID不存在')
+            prop.selectedItem.status = prop.selectedItem.status === '1' ? '0' : '1'
+            return
+        }
 
-  const groupMeans: number[] = [] // 组内均值
-  const groupRanges: number[] = [] // 组内极差
+        const newStatus = prop.selectedItem.status === '1' ? 1 : 0
 
-  // 处理每个样本组
-  sampleGroups.forEach((group, index) => {
-    const subgroupId = `SG${100 + (index + 1)}`
-    const date = `2025-09-${20 + (index + 1)}`
-    const time = `08:${(10 + (index + 1) * 2).toString().padStart(2, '0')}:00`
-    
-    const values = group.values
-    const mean = values.reduce((a, b) => a + b, 0) / values.length
-    const range = Math.max(...values) - Math.min(...values)
-    
-    groupMeans.push(mean)
-    groupRanges.push(range)
-    
-    // 确定状态
-    let status: '正常' | '警告' | '异常' = '正常'
-    if (mean > 50.06 || mean < 49.98) {
-      status = '异常'
-    } else if (mean > 50.04 || mean < 50.00) {
-      status = '警告'
+        const res = await updateTaskStatus(String(taskId), newStatus as 0 | 1)
+
+        if (res.code === 200) showSuccess(newStatus === 1 ? '任务已启用' : '任务已停用')
+        else showError('状态切换失败')
+
+        // emit('change')
+    } catch (error) {
+        console.error('状态切换失败:', error)
+        prop.selectedItem.status = prop.selectedItem.status === '1' ? '0' : '1'
+        showError('状态切换失败')
     }
-    
-    const operator = index % 3 === 0 ? '王五' : (index % 3 === 1 ? '李四' : '赵六')
-    const remark = status === '正常' ? '' : '需关注'
-    
-    // 创建样本数据对象
-    const sample: SampleData = {
-      id: `sample-${index + 1}`,
-      subgroupId,
-      datetime: `${date} ${time}`,
-      value1: parseFloat(values[0]!.toFixed(2)),
-      value2: parseFloat(values[1]!.toFixed(2)),
-      value3: parseFloat(values[2]!.toFixed(2)),
-      value4: parseFloat(values[3]!.toFixed(2)),
-      value5: parseFloat(values[4]!.toFixed(2)),
-      mean: parseFloat(mean.toFixed(2)),
-      range: parseFloat(range.toFixed(2)),
-      status,
-      operator,
-      remark,
-      enabled: true
-    }
-    
-    sampleData.value.push(sample)
-    console.log("初始化测量数据：",sampleData.value)
-  })
-  
-  // 计算整体均值和极差
-  overallMean.value = parseFloat((groupMeans.reduce((sum, val) => sum + val, 0) / groupMeans.length).toFixed(2))
-  overallRange.value = parseFloat((groupRanges.reduce((sum, val) => sum + val, 0) / groupRanges.length).toFixed(2))
 }
 
 // 获取行样式类
@@ -686,24 +1013,26 @@ const getRowClass = ({ row }: { row: SampleData }) => {
 
 // 获取数据点样式类
 const getDataPointClass = (row: SampleData, valueIndex: number) => {
-  const value = row[`value${valueIndex + 1}` as keyof SampleData] as number
-  
-  // 简单的数据点状态判断（可以根据实际业务逻辑调整）
-  if (value > 60 || value < 40) {
-    return 'data-point-error'
-  } else if (value > 55 || value < 45) {
-    return 'data-point-warning'
-  }
+  const value = row.values[valueIndex] as number
+  if (value === null || value === undefined) return ''
+
+  if (!controlLimits.value || sigmaValue.value === 0) return ''
+
+  const status = judgeStatus(value)
+  if (status === '异常') return 'data-point-error'
+  if (status === '警告') return 'data-point-warning'
   return 'data-point-normal'
 }
 
 // 获取均值状态样式类
 const getMeanStatusClass = (mean: number) => {
-  if (mean > 50.06 || mean < 49.98) {
-    return 'data-point-error'
-  } else if (mean > 50.04 || mean < 50.00) {
-    return 'data-point-warning'
-  }
+  if (mean === null || mean === undefined) return ''
+
+  if (!controlLimits.value || sigmaValue.value === 0) return ''
+
+  const status = judgeStatus(mean)
+  if (status === '异常') return 'data-point-error'
+  if (status === '警告') return 'data-point-warning'
   return 'data-point-normal'
 }
 
@@ -719,7 +1048,7 @@ const getStatusTagType = (status: string) => {
 
 // 开关变化处理
 const handleSwitchChange = (row: SampleData) => {
-  ElMessage.info(`${row.subgroupId} 状态已${row.enabled ? '启用' : '禁用'}`)
+  showInfo(`${row.subgroupId} 状态已${row.enabled ? '启用' : '禁用'}`)
   console.log('开关状态变化:', row)
 }
 
@@ -738,15 +1067,15 @@ const handleCurrentChange = (page: number) => {
 const addNewRow = () => {
   editingRows.value.unshift({
     id: `new-${Date.now()}`,
-    subgroupId: '',
+    subgroupId: String(
+        sampleData.value.length > 0
+            ? Math.max(...sampleData.value.map((r: any) => parseInt(r.subgroupId) || 0)) + 1
+            : 1
+    ),
     datetime: '',
-    value1: null as any,
-    value2: null as any,
-    value3: null as any,
-    value4: null as any,
-    value5: null as any,
-    mean: null as any,
-    range: null as any,
+    values: new Array(subgroupSizeNum.value).fill(null),
+    mean: null,
+    range: null,
     status: '正常',
     operator: '',
     remark: '',
@@ -757,12 +1086,15 @@ const addNewRow = () => {
 
 /* 自动算 X̄ / R */
 const calcNewRow = (row: SampleData) => {
-  const values = [row.value1, row.value2, row.value3, row.value4, row.value5]
-    .filter(v => typeof v === 'number') as number[]
+  const values = row.values.filter(v => typeof v === 'number') as number[]
+  const n = subgroupSizeNum.value
 
-  if (values.length === 5) {
-    row.mean = +(values.reduce((a, b) => a + b, 0) / 5).toFixed(2)
+  if (values.length === n && n > 0) {
+    row.mean = +(values.reduce((a, b) => a + b, 0) / n).toFixed(2)
     row.range = +(Math.max(...values) - Math.min(...values)).toFixed(2)
+  } else {
+    row.mean = null
+    row.range = null
   }
 }
 
@@ -777,23 +1109,14 @@ const recalcOverall = () => {
 
 /* 确认新增 */
 const confirmNewRow = (row: SampleData) => {
-  if (
-    row.value1 == null ||
-    row.value2 == null ||
-    row.value3 == null ||
-    row.value4 == null ||
-    row.value5 == null
-  ) {
-    ElMessage.warning('请填写完整 5 个样本值')
+  const n = subgroupSizeNum.value
+  const hasAllValues = row.values.slice(0, n).every(v => v != null)
+  if (!hasAllValues) {
+    showWarning(`请填写完整 ${n} 个样本值`)
     return
   }
 
-  row.status =
-    row.mean > 50.06 || row.mean < 49.98
-      ? '异常'
-      : row.mean > 50.04 || row.mean < 50.0
-      ? '警告'
-      : '正常'
+  row.status = judgeStatus(row.mean ?? 0)
 
   row.isNew = false
   row.datetime = formattedTime.value
@@ -801,7 +1124,7 @@ const confirmNewRow = (row: SampleData) => {
   editingRows.value = editingRows.value.filter(r => r.id !== row.id)
 
   recalcOverall()
-  ElMessage.success('新增成功')
+  showSuccess('新增成功')
 }
 
 const cancelNewRow = (id: string) => {
@@ -811,8 +1134,10 @@ const cancelNewRow = (id: string) => {
 /* ================= Excel 模板 ================= */
 
 const exportTemplate = () => {
+  const n = subgroupSizeNum.value
+  const valueHeaders = Array.from({ length: n }, (_, i) => `值${i + 1}`)
   const headers = [
-    ['样本组', '时间', '值1', '值2', '值3', '值4', '值5', '操作员', '备注']
+    ['样本组', '时间', ...valueHeaders, '操作员', '备注']
   ]
   const sheet = XLSX.utils.aoa_to_sheet(headers)
   const wb = XLSX.utils.book_new()
@@ -841,50 +1166,45 @@ const handleFile = (e: Event) => {
     const wb = XLSX.read(evt.target?.result, { type: 'binary', cellDates: true, cellNF: false })
     const name = wb.SheetNames[0]
     if (!name) {
-        ElMessage.error("Excel 中未找到工作表")
+        showError("Excel 中未找到工作表")
         return
     }
     const sheet = wb.Sheets[name]
     if (!sheet) {
-        ElMessage.error("Excel 中未找到工作表")
+        showError("Excel 中未找到工作表")
         return
     }
     const rows: any[] = XLSX.utils.sheet_to_json(sheet)
 
     rows.forEach((r, i) => {
-      const values = [r['值1'], r['值2'], r['值3'], r['值4'], r['值5']]
-      const mean = values.reduce((a, b) => a + b, 0) / 5
-      const range = Math.max(...values) - Math.min(...values)
-      let status: '正常' | '警告' | '异常' = '正常'
-      if (mean > 50.06 || mean < 49.98) {
-        status = '异常'
-      } else if (mean > 50.04 || mean < 50.00) {
-        status = '警告'
+      const n = subgroupSizeNum.value
+      const values: (number | null)[] = []
+      for (let j = 0; j < n; j++) {
+        const v = r[`值${j + 1}`]
+        values.push(v != null ? v : null)
       }
-      
-      const remark = status === '正常' ? '' : '需关注'
+      const validValues = values.filter((v): v is number => v != null)
+      const mean = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0
+      const range = validValues.length > 1 ? Math.max(...validValues) - Math.min(...validValues) : 0
 
       sampleData.value = [
         {
         id: `import-${Date.now()}-${i}`,
         subgroupId: r['样本组'],
         datetime: formatTimeStamp(r['时间']),
-        value1: r['值1'],
-        value2: r['值2'],
-        value3: r['值3'],
-        value4: r['值4'],
-        value5: r['值5'],
+        values,
         mean: +mean.toFixed(2),
         range: +range.toFixed(2),
-        status: r['状态'] ?? status,
+        status: r['状态'] ?? '正常',
         operator: r['操作员'],
-        remark: r['备注'] ?? remark
+        remark: r['备注'] ?? '',
+        enabled: true
       } as SampleData,
       ...sampleData.value
       ]
     })
 
-    ElMessage.success('导入成功')
+    showSuccess('导入成功')
   }
   reader.readAsBinaryString(file)
 }
@@ -892,20 +1212,22 @@ const handleFile = (e: Event) => {
 /* ================= Excel 导出 ================= */
 
 const exportExcel = () => {
-  const rows = sampleData.value.map(r => ({
-    样本组: r.subgroupId,
-    时间: r.datetime,
-    值1: r.value1,
-    值2: r.value2,
-    值3: r.value3,
-    值4: r.value4,
-    值5: r.value5,
-    均值: r.mean,
-    极差: r.range,
-    状态: r.status,
-    操作员: r.operator,
-    备注: r.remark
-  }))
+  const rows = sampleData.value.map(r => {
+    const row: any = {
+      样本组: r.subgroupId,
+      时间: r.datetime,
+    }
+    const n = subgroupSizeNum.value
+    for (let i = 0; i < n; i++) {
+      row[`值${i + 1}`] = r.values[i]
+    }
+    row.均值 = r.mean
+    row.极差 = r.range
+    row.状态 = r.status
+    row.操作员 = r.operator
+    row.备注 = r.remark
+    return row
+  })
 
   const sheet = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
@@ -915,10 +1237,35 @@ const exportExcel = () => {
   saveAs(new Blob([buffer]), '测量数据表.xlsx')
 }
 
-// 初始化
+// 监听组内样本量变化，调整已有数据
+watch(() => techList.value.set, (newVal, oldVal) => {
+  if (newVal && oldVal && newVal !== oldVal && !isAddMode.value) {
+    const newSize = parseInt(newVal)
+    if (newSize >= 5 && newSize <= 25 && sampleData.value.length > 0) {
+      sampleData.value.forEach(row => {
+        if (row.values.length < newSize) {
+          row.values = [...row.values, ...new Array(newSize - row.values.length).fill(null)]
+        } else if (row.values.length > newSize) {
+          row.values = row.values.slice(0, newSize)
+        }
+      })
+      // 重新计算均值和极差
+      sampleData.value.forEach(row => {
+        const validValues = row.values.filter((v): v is number => v != null)
+        if (validValues.length > 0) {
+          const mean = validValues.reduce((a, b) => a + b, 0) / validValues.length
+          row.mean = parseFloat(mean.toFixed(2))
+          row.range = validValues.length > 1
+            ? parseFloat((Math.max(...validValues) - Math.min(...validValues)).toFixed(2))
+            : 0
+          row.status = judgeStatus(mean)
+        }
+      })
+      recalcOverall()
+    }
+  }
+}, { immediate: false })
 onMounted(() => {
-  loadData()
-  saveOriginalData()
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
 
@@ -1032,13 +1379,8 @@ defineExpose({ checkUnsavedChanges })
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
-}
-
-.table-container {
-  width: 100%;
   overflow-x: hidden;
   border: 1px solid #ebeef5;
-  border-radius: 4px;
   
   :deep(.el-table) {
     width: 100%;
@@ -1283,5 +1625,20 @@ defineExpose({ checkUnsavedChanges })
       padding: 6px 10px;
     }
   }
+}
+
+// 验证错误提示
+.validation-error {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+// 必填字段标记
+.required {
+  color: #ff4d4f;
+  margin-right: 2px;
+  font-weight: bold;
 }
 </style>

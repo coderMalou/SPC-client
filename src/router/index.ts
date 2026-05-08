@@ -14,27 +14,27 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/login.vue'),
-      meta: {requireGuest: true},
+      meta: { requireGuest: true },
     },
     {
       path: '/task',
       name: 'task',
       component: () => import('@/views/task/index.vue'),
-      meta: {requireAuth: true},
+      meta: { requireAuth: true },
       children: [
         {
           path: '/task/detail',
           name: 'taskDetail',
           component: () => import('@/views/task/detail.vue'),
-          meta: {requireAuth: true},
+          meta: { requireAuth: true },
         }
       ]
     },
     {
-      path: '/graph',
+      path: '/graph/:taskId?',
       name: 'graph',
       component: () => import('@/views/graph/index.vue'),
-      meta: {requireAuth: true},
+      meta: { requireAuth: true },
     }
   ],
 })

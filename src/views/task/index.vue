@@ -40,7 +40,7 @@
                                 {{ item.no }}
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; padding-right: 8px;">
-                                <div class="status-badge badge-done" v-if="item.status === 1">已关闭</div>
+                                <div class="status-badge badge-done" v-if="item.status === 0">已关闭</div>
                                 <div class="status-badge status-done" v-else>已启用</div>
                                 <powerOff @click="()=>{
                                     isShowDialog = true
@@ -75,14 +75,14 @@
                         </el-button>
                     </div>
                     <div class="filter-search">
-                        <el-select v-model="currentType" placeholder="全部类别" style="width: 120px">
+                        <!-- <el-select v-model="currentType" placeholder="全部类别" style="width: 120px">
                             <el-option
                             v-for="item in typeList"
                             :key="item.id"
                             :label="item.name"
                             :value="item.id"
                             />
-                        </el-select>
+                        </el-select> -->
                         <el-select v-model="currentStatus" placeholder="全部状态" style="width: 120px">
                             <el-option
                             v-for="item in statusList"
@@ -103,12 +103,13 @@
                 <div class="table-container">
                     <el-table
                         :data="pagedTableData"
+                        v-loading="loading"
                         row-key="tid"
                         style="width: 100%; table-layout: auto;"
                         @selection-change="handleMultiSelect"
                     >
                         <el-table-column type="selection" :selectable="()=>true"></el-table-column>
-                        <el-table-column prop="line" label="行号" align="center"></el-table-column>
+                        <el-table-column prop="lineNo" label="行号" align="center"></el-table-column>
                         <el-table-column prop="ticket" label="工单号" align="center"></el-table-column>
                         <el-table-column prop="pid" label="产品编码" align="center"></el-table-column>
                         <el-table-column prop="pname" label="产品名称" align="center"></el-table-column>
@@ -136,7 +137,7 @@
                                         详情
                                     </el-button>
                                     <el-button 
-                                        v-if="currentTicket.status !== 1"
+                                        v-if="currentTicket.status !== 0"
                                         type="warning" 
                                         size="small" 
                                         class="btn-edit"
@@ -153,7 +154,7 @@
                                         控制图
                                     </el-button>
                                     <el-button 
-                                        v-if="currentTicket.status !== 1"
+                                        v-if="currentTicket.status !== 0"
                                         type="warning" 
                                         size="small" 
                                         class="btn-delete"
@@ -195,14 +196,11 @@
           title="提示"
           :width="dialogWidth"
         >
-            <span>是否{{ currentTicket.status === 1 ? "开启" : "关闭" }}当前工单:&nbsp;{{ currentNo }}?</span>
+            <span>是否{{ currentTicket.status === 0 ? "开启" : "关闭" }}当前工单:&nbsp;{{ currentNo }}?</span>
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="isShowDialog = false">取消</el-button>
-                    <el-button type="primary" @click="()=>{
-                        currentTicket.status = currentTicket.status ===  1 ? 0 : 1
-                        isShowDialog = false
-                    }">确认</el-button>
+                    <el-button type="primary" @click="handleWorkOrderStatusChangeDebounced">确认</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -215,10 +213,7 @@
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="deletDialog = false">取消</el-button>
-                    <el-button type="primary" @click="()=>{
-                        handleDelete(currentMission)
-                        deletDialog = false
-                    }">确认</el-button>
+                    <el-button type="primary" @click="handleDeleteDebounced(currentMission)">确认</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -237,10 +232,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { showSuccess, showError, showWarning } from '@/utils/message'
+import { ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { getWorkOrders, getTasks, enableWorkOrder, closeWorkOrder, deleteTask, updateTaskStatus, getTaskDetail } from '@/api/modules';
 const router = useRouter()
+const route = useRoute()
 
 // 响应式屏幕宽度检测
 const screenWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
@@ -265,6 +263,7 @@ import powerOff from '@/components/icons/powerOff.vue';
 import exportIcon from '@/components/icons/exportIcon.vue';
 import copyIcon from '@/components/icons/copyIcon.vue';
 import plusIcon from '@/components/icons/plusIcon.vue';
+import { useDebounceFn } from '@/utils/functions';
 
 // 左侧工单列表显示控制
 const isShowTaskNo = ref(true)
@@ -316,32 +315,9 @@ const handleCloseDetail = async () => {
 const isShowDialog = ref(false)
 const deletDialog = ref(false)
 
-// 原始数据
-const taskNoList = ref([
-    {no:'WO20251013001', status: 0},
-    {no:'WO20251013002', status: 0},
-    {no:'WO20251013003', status: 0},
-    {no:'WO20251013004', status: 0},
-    {no:'WO20251013005', status: 1},
-    {no:'WO20251013006', status: 0},
-])
-
-const typeList = ref([
-    {name: '全部类别', id: 0},
-    {name:'机加工', id: 1},
-    {name:'冲压', id: 2},
-    {name:'热处理', id: 3}
-])
-
-const statusList = ref([
-    {name: '全部状态', id: 0},
-    {name: '启用', id: 1},
-    {name: '停用', id: 2}
-])
-
-// 模拟的表格数据
-interface data {
-    line?: number;
+// 数据类型定义
+interface TaskData {
+    lineNo?: number;
     ticket?: string;
     pid?: string;
     pname?: string;
@@ -351,29 +327,114 @@ interface data {
     status?: string;
     stime?: string;
     ctime?: string;
+    workOrderId?: number;
+    _rawData?: any;
 }
 
-const rawTableData = ref<data[]>([
-    {line:1, ticket:'WO20251013001', pid:'123456', pname:'铆接总成', tid:'WO20251013001-001', tname:'总成检外观', devid:'00001', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
-    {line:2, ticket:'WO20251013002', pid:'123457', pname:'铆接总成', tid:'WO20251013002-001', tname:'总成检外观', devid:'00002', status:'0', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
-    {line:3, ticket:'WO20251013001', pid:'123458', pname:'铆接总成', tid:'WO20251013001-002', tname:'总成检外观', devid:'00001', status:'1', stime:'2025-10-13 11:45:14', ctime:'2025-10-01 11:45:14'},
-    {line:4, ticket:'WO20251013003', pid:'123459', pname:'轴套组件', tid:'WO20251013003-001', tname:'轴套装配', devid:'00003', status:'2', stime:'2025-10-12 14:20:10', ctime:'2025-10-01 08:30:00'},
-    {line:5, ticket:'WO20251013004', pid:'123460', pname:'轴套组件', tid:'WO20251013004-001', tname:'轴套装配', devid:'00003', status:'0', stime:'2025-10-12 16:45:30', ctime:'2025-10-02 09:15:00'},
-    {line:6, ticket:'WO20251013005', pid:'123461', pname:'齿轮箱体', tid:'WO20251013005-001', tname:'齿轮装配', devid:'00004', status:'1', stime:'2025-10-11 10:30:00', ctime:'2025-10-03 13:20:00'},
-    {line:7, ticket:'WO20251013006', pid:'123462', pname:'齿轮箱体', tid:'WO20251013006-001', tname:'齿轮装配', devid:'00004', status:'0', stime:'2025-10-11 15:20:00', ctime:'2025-10-03 13:20:00'},
-    {line:8, ticket:'WO20251013001', pid:'123463', pname:'轴承座', tid:'WO20251013001-003', tname:'轴承装配', devid:'00005', status:'0', stime:'2025-10-10 09:10:20', ctime:'2025-10-04 10:00:00'},
-    {line:9, ticket:'WO20251013002', pid:'123464', pname:'轴承座', tid:'WO20251013002-002', tname:'轴承装配', devid:'00005', status:'2', stime:'2025-10-10 11:30:40', ctime:'2025-10-04 10:00:00'},
-    {line:10, ticket:'WO20251013003', pid:'123465', pname:'法兰盘', tid:'WO20251013003-002', tname:'法兰加工', devid:'00006', status:'0', stime:'2025-10-09 13:45:00', ctime:'2025-10-05 14:30:00'},
+// 工单列表数据（从API获取）
+const taskNoList = ref<{no: string, status: number, id?: number}[]>([])
+
+// 类别列表
+const typeList = ref([
+    {name: '全部类别', id: 0},
+    {name: '总成检外观', id: 1},
+    {name: '轴套装配', id: 2},
+    {name: '齿轮装配', id: 3},
 ])
 
+// 状态列表
+const statusList = ref([
+    {name: '全部状态', id: 0},
+    {name: '已启用', id: 1},
+    {name: '已关闭', id: 2},
+])
+
+// 任务列表数据（从API获取）
+const rawTableData = ref<any[]>([])
+
+// 加载状态
+const loading = ref(false)
+
+// 获取工单列表
+// 获取工单列表
+const fetchWorkOrders = async () => {
+    try {
+        const res = await getWorkOrders()
+        if (res.code === 200) {
+            taskNoList.value = res.data.map((item: any) => ({
+                no: item.orderNo,
+                status: item.status,
+                id: item.id
+            }))
+            // 默认选中第一个工单
+            const firstOrder = taskNoList.value[0]
+            if (firstOrder) {
+                currentNo.value = firstOrder.no
+                currentTicket.value = firstOrder
+                // 获取第一个工单的任务列表
+                fetchTasks(firstOrder.id)
+            }
+        }
+    } catch (error) {
+        console.error('获取工单列表失败:', error)
+        showError('获取工单列表失败')
+    }
+}
+
+// 获取任务列表
+const fetchTasks = async (workOrderId?: number) => {
+    loading.value = true
+    try {
+        const params: any = {}
+        if (workOrderId) {
+            params.workOrderId = workOrderId
+        }
+        const res = await getTasks(params)
+        if (res.code === 200) {
+            // 转换后端数据为前端需要的格式
+            rawTableData.value = res.data.map((item: any, index: number) => ({
+                lineNo: item.lineNo,
+                ticket: item.orderNo,
+                tid: item.taskNo,
+                pid: item.productCode,
+                pname: item.productName,
+                tname: item.processName,
+                devid: item.equipmentCode,
+                status: String(item.status),
+                stime: item.enabledAt ? formatDate(item.enabledAt) : '',
+                ctime: item.createdAt ? formatDate(item.createdAt) : '',
+                // 保留原始数据
+                _rawData: item
+            }))
+        }
+    } catch (error) {
+        console.error('获取任务列表失败:', error)
+        showError('获取任务列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+// 格式化日期
+const formatDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    const second = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+}
+
 // 选中内容
-const currentTicket = ref<any>(taskNoList.value[0])
-const currentNo = ref(taskNoList.value[0]?.no || '')
+const currentTicket = ref<any>({})
+const currentNo = ref('')
 const currentType = ref(0)
 const currentStatus = ref(0)
 const currentMission = ref()
 const selectedData = ref([])
-const selectedItem = ref<data>({})
+const selectedItem = ref<TaskData>({})
 
 // 计算属性：过滤左侧工单列表
 const filteredTaskNoList = computed(() => {
@@ -403,7 +464,8 @@ const filteredTableData = computed(() => {
         
         // 按状态过滤
         if (currentStatus.value > 0) {
-            if (item.status !== String(currentStatus.value - 1)) {
+            const targetStatus = currentStatus.value === 1 ? '1' : '0'
+            if (item.status !== targetStatus) {
                 return false
             }
         }
@@ -431,18 +493,16 @@ const pagedTableData = computed(() => {
 // 状态显示格式化
 const getStatusText = (status: string) => {
     switch(status) {
-        case '0': return '启用'
-        case '1': return '已关闭'
-        case '2': return '停用'
+        case '1': return '启用'
+        case '0': return '停用'
         default: return '未知'
     }
 }
 
 const getStatusClass = (status: string) => {
     switch(status) {
-        case '0': return 'status-text status-open'
-        case '1': return 'status-text status-closed'
-        case '2': return 'status-text status-stopped'
+        case '1': return 'status-text status-open'
+        case '0': return 'status-text status-stopped'
         default: return 'status-text'
     }
 }
@@ -455,6 +515,10 @@ const toggleTaskNoList = () => {
 const handleTaskNoClick = (item: any) => {
     currentNo.value = item.no
     currentTicket.value = item
+    // 切换工单时重新获取任务列表
+    if (item.id) {
+        fetchTasks(item.id)
+    }
 }
 
 const handleMultiSelect = (val:any) => {
@@ -479,27 +543,62 @@ const handleAdd = () => {
     
     selectedItem.value = {
         ticket: currentNo.value,
-        ctime: ctime
+        ctime: ctime,
+        workOrderId: currentTicket.value?.id
     }
     isShowDetails.value = true
     isEdit.value = true
     console.log('新增任务')
 }
 
-const handleSaveTask = (taskData: any) => {
-    console.log('保存新任务:', taskData)
-    // 添加到任务列表
-    const newTask = {
-        ...taskData,
-        line: taskData.line || 1,
-        no: taskData.tid || `T${Date.now()}`,
-        status: taskData.status === '0' ? 0 : 1,
-        ctime: new Date().toISOString().split('T')[0]
+const handleWorkOrderStatusChange = async () => {
+    try {
+        const ticketId = String(currentTicket.value?.id)
+        if (!ticketId || ticketId === 'undefined') {
+            showError('工单ID不存在')
+            return
+        }
+
+        if (currentTicket.value.status === 0) {
+            await enableWorkOrder(ticketId)
+            currentTicket.value.status = 1
+        } else {
+            await closeWorkOrder(ticketId)
+            currentTicket.value.status = 0
+        }
+
+        const index = taskNoList.value.findIndex((item: any) => item.id === currentTicket.value.id)
+        if (index !== -1 && taskNoList.value[index]) {
+            taskNoList.value[index].status = currentTicket.value.status
+        }
+
+        showSuccess(currentTicket.value.status === 1 ? '工单已开启' : '工单已关闭')
+    } catch (error) {
+        console.error('工单状态更新失败:', error)
+        showError('工单状态更新失败')
+    } finally {
+        isShowDialog.value = false
     }
-    rawTableData.value.unshift(newTask)
-    // 关闭详情页
-    isShowDetails.value = false
-    ElMessage.success('任务添加成功')
+}
+
+const handleSaveTask = async (taskData: any) => {
+    console.log('保存任务结果:', taskData)
+    try {
+        // 获取当前工单 ID，确保有效
+        const workOrderId = currentTicket.value?.id || currentTicket.value?.workOrderId
+        if (workOrderId) {
+            await fetchTasks(workOrderId)
+        } else {
+            // 如果工单 ID 不存在，获取所有任务
+            await fetchTasks()
+        }
+    } catch (error) {
+        console.error('刷新任务列表失败:', error)
+        showError('刷新任务列表失败')
+    } finally {
+        // 关闭详情页
+        isShowDetails.value = false
+    }
 }
 
 const handleDetail = (row: any) => {
@@ -509,15 +608,38 @@ const handleDetail = (row: any) => {
     console.log('详情:', row)
 }
 const handleChart = (row: any) => {
-    router.push('/graph')
+    // 从原始数据中获取任务ID
+    const taskId = row._rawData?.id
+    const orderId = row.ticket
+    if (taskId) {
+        router.push(`/graph/?taskId=${taskId}&orderId=${orderId}`)
+    } else {
+        router.push('/graph')
+    }
     console.log('控制图:', row)
 }
-const handleDelete = (row: any) => {
-    const ind = rawTableData.value.findIndex((item:any)=>{
-        return item.ticket === row.ticket && item.pid === row.pid
-    })
-    rawTableData.value.splice(ind,1)
-    console.log('删除:', row)
+const handleDelete = async (row: any) => {
+    try {
+        const taskId = row._rawData?.id
+        if (!taskId) {
+            showError('任务ID不存在，无法删除')
+            return
+        }
+        await deleteTask(String(taskId))
+        // 刷新当前工单下的任务列表
+        const workOrderId = currentTicket.value?.id || currentTicket.value?.workOrderId
+        if (workOrderId) {
+            await fetchTasks(workOrderId)
+        } else {
+            await fetchTasks()
+        }
+        showSuccess('任务已删除')
+    } catch (error) {
+        console.error('删除失败:', error)
+        showError('删除失败')
+    } finally {
+        deletDialog.value = false
+    }
 }
 
 
@@ -545,7 +667,7 @@ const handleCurrentChange = (page: number) => {
 // 导出
 const handleExport = () => {
     if (selectedData.value.length === 0) {
-        ElMessage.warning('请先选择要导出的数据')
+        showWarning('请先选择要导出的数据')
         return
     }
     
@@ -559,7 +681,7 @@ const handleExport = () => {
         // 添加选中行的数据
         selectedData.value.forEach((item:any) => {
             worksheetData.push([
-                item.line,
+                item.No,
                 item.ticket,
                 item.pid,
                 item.pname,
@@ -599,18 +721,18 @@ const handleExport = () => {
         const fileName = `任务列表_${timestamp}.xlsx`
         XLSX.writeFile(workbook, fileName)
         
-        ElMessage.success(`成功导出 ${selectedData.value.length} 条数据`)
+        showSuccess(`成功导出 ${selectedData.value.length} 条数据`)
         
     } catch (error) {
         console.error('导出Excel失败:', error)
-        ElMessage.error('导出失败，请重试')
+        showError('导出失败，请重试')
     }
 }
 
 // 复制
 const handleCopy = async () => {
     if (selectedData.value.length === 0) {
-        ElMessage.warning('请先选择要复制的数据')
+        showWarning('请先选择要复制的数据')
         return
     }
     
@@ -620,7 +742,7 @@ const handleCopy = async () => {
         
         // 添加选中行的数据
         selectedData.value.forEach((item:any) => {
-            clipboardText += `${item.line}\t${item.ticket}\t${item.pid}\t${item.pname}\t${item.tid}\t${item.tname}\t${item.devid}\t${getStatusText(item.status)}\t${item.stime}\t${item.ctime}\n`
+            clipboardText += `${item.lineNo}\t${item.ticket}\t${item.pid}\t${item.pname}\t${item.tid}\t${item.tname}\t${item.devid}\t${getStatusText(item.status)}\t${item.stime}\t${item.ctime}\n`
         })
         
         // 使用现代Clipboard API
@@ -640,38 +762,79 @@ const handleCopy = async () => {
                 document.execCommand('copy')
             } catch (err) {
                 console.error('复制失败:', err)
-                ElMessage.error('复制失败，请重试')
+                showError('复制失败，请重试')
                 return
             }
             
             document.body.removeChild(textArea)
         }
         
-        ElMessage.success(`成功复制 ${selectedData.value.length} 条数据到剪切板`)
+        showSuccess(`成功复制 ${selectedData.value.length} 条数据到剪切板`)
         
     } catch (error) {
         console.error('复制到剪切板失败:', error)
-        ElMessage.error('复制失败，请重试')
+        showError('复制失败，请重试')
     }
 }
 
-const handleStatusChange = () => {
-    const ind = rawTableData.value.findIndex((item:any)=>{
-        return item.ticket === selectedItem.value.ticket && item.pid === selectedItem.value.pid
-    })
-    const curStatus = rawTableData.value[ind]?.status
-    rawTableData.value.map((item:data, index)=>{
-        if (index === ind) {
-            item.status = curStatus === '0' ? '1' : '0'
+const handleStatusChange = async () => {
+    try {
+        const taskId = selectedItem.value?._rawData?.id
+        if (!taskId) {
+            showError('任务ID不存在，无法切换状态')
+            return
         }
-    })
+        const curStatus = selectedItem.value?.status
+        const newStatus = curStatus === '1' ? 0 : 1
+        await updateTaskStatus(String(taskId), newStatus as 0 | 1)
+        // 刷新任务列表
+        const workOrderId = currentTicket.value?.id || currentTicket.value?.workOrderId
+        if (workOrderId) {
+            await fetchTasks(workOrderId)
+        } else {
+            await fetchTasks()
+        }
+        showSuccess(newStatus === 1 ? '任务已启用' : '任务已停用')
+    } catch (error) {
+        console.error('状态切换失败:', error)
+        showError('状态切换失败')
+    }
 }
 
+// 防抖包装
+const handleWorkOrderStatusChangeDebounced = useDebounceFn(handleWorkOrderStatusChange, 500)
+const handleDeleteDebounced = useDebounceFn(handleDelete, 500)
+
 // 初始化
-onMounted(() => {
+onMounted(async () => {
     console.log('组件已加载')
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
+    // 获取工单列表和任务列表
+    fetchWorkOrders()
+
+    // 检查路由参数，自动打开指定任务详情
+    const taskId = route.query.taskId as string
+    if (taskId) {
+        try {
+            const res = await getTaskDetail(taskId)
+            if (res.code === 200 && res.data) {
+                const task = res.data
+                selectedItem.value = {
+                    tid: task.taskNo,
+                    ticket: task.orderNo,
+                    pid: task.productCode,
+                    pname: task.productName,
+                    workOrderId: task.workOrderId ? Number(task.workOrderId) : undefined,
+                    _rawData: task
+                }
+                isShowDetails.value = true
+                isEdit.value = false
+            }
+        } catch (e) {
+            console.error('自动打开任务详情失败:', e)
+        }
+    }
 })
 
 // 组件卸载时移除监听
@@ -956,8 +1119,7 @@ onUnmounted(() => {
 .table-container {
     flex: 1;
     width: 100%;
-    overflow-x: hidden;
-    overflow-y: hidden; 
+    overflow: auto;
     border: 1px solid #ebeef5;
     border-radius: 4px;
 }

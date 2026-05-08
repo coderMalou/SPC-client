@@ -18,11 +18,10 @@ interface WorkOrderParams {
  */
 interface WorkOrder {
     id: string
-    companyId: string
-    companyName: string
-    status: string
+    orderNo: string
+    status: number
     createdAt: string
-    updatedAt: string
+    closedAt?: string
 }
 
 /**
@@ -30,10 +29,7 @@ interface WorkOrder {
  */
 interface WorkOrderListResponse {
     code: number
-    data: {
-        list: WorkOrder[]
-        total: number
-    }
+    data: WorkOrder[]
     message?: string
 }
 
@@ -43,7 +39,7 @@ interface WorkOrderListResponse {
  * @returns Promise<WorkOrderListResponse>
  */
 export async function getWorkOrders(params?: WorkOrderParams): Promise<WorkOrderListResponse> {
-    return await request.get('/api/workOrders', { params }) as unknown as Promise<WorkOrderListResponse>
+    return await request.get('/api/work-orders', { params }) as unknown as Promise<WorkOrderListResponse>
 }
 
 /**
@@ -52,7 +48,7 @@ export async function getWorkOrders(params?: WorkOrderParams): Promise<WorkOrder
  * @returns Promise<any>
  */
 export async function enableWorkOrder(id: string): Promise<any> {
-    return await request.put(`/api/workOrders/${id}/enable`) as unknown as Promise<any>
+    return await request.put(`/api/work-orders/${id}/enable`) as unknown as Promise<any>
 }
 
 /**
@@ -61,5 +57,14 @@ export async function enableWorkOrder(id: string): Promise<any> {
  * @returns Promise<any>
  */
 export async function closeWorkOrder(id: string): Promise<any> {
-    return await request.put(`/workOrders/${id}/close`) as unknown as Promise<any>
+    return await request.put(`/api/work-orders/${id}/close`) as unknown as Promise<any>
+}
+
+/**
+ * 创建工单
+ * @param orderNo - 工单编号
+ * @returns Promise<ApiResponse<{ id: number, orderNo: string, status: number, createdAt: string }>>
+ */
+export async function createWorkOrder(orderNo: string): Promise<{ code: number; data: { id: number; orderNo: string; status: number; createdAt: string }; msg?: string }> {
+    return await request.post('/api/work-orders', { orderNo }) as unknown as Promise<{ code: number; data: { id: number; orderNo: string; status: number; createdAt: string }; msg?: string }>
 }
