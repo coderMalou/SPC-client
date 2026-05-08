@@ -1137,7 +1137,7 @@ const exportTemplate = () => {
   const n = subgroupSizeNum.value
   const valueHeaders = Array.from({ length: n }, (_, i) => `值${i + 1}`)
   const headers = [
-    ['样本组', '时间', ...valueHeaders, '操作员', '备注']
+    ['时间', ...valueHeaders, '操作员', '备注']
   ]
   const sheet = XLSX.utils.aoa_to_sheet(headers)
   const wb = XLSX.utils.book_new()
@@ -1176,6 +1176,15 @@ const handleFile = (e: Event) => {
     }
     const rows: any[] = XLSX.utils.sheet_to_json(sheet)
 
+    // 计算当前最大样本组编号（同时考虑已确认数据和新编辑行），用于顺延
+    let maxSubgroupId = 0;
+    [...sampleData.value, ...editingRows.value].forEach(row => {
+      const num = parseInt(row.subgroupId) || 0
+      if (num > maxSubgroupId) {
+        maxSubgroupId = num
+      }
+    })
+
     rows.forEach((r, i) => {
       const n = subgroupSizeNum.value
       const values: (number | null)[] = []
@@ -1187,23 +1196,28 @@ const handleFile = (e: Event) => {
       const mean = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0
       const range = validValues.length > 1 ? Math.max(...validValues) - Math.min(...validValues) : 0
 
+      // 自动分配样本组编号，按顺序顺延
+      maxSubgroupId++
+
       sampleData.value = [
         {
         id: `import-${Date.now()}-${i}`,
-        subgroupId: r['样本组'],
+        subgroupId: String(maxSubgroupId),
         datetime: formatTimeStamp(r['时间']),
         values,
         mean: +mean.toFixed(2),
         range: +range.toFixed(2),
-        status: r['状态'] ?? '正常',
-        operator: r['操作员'],
+        operator: r['操作员'] ?? '',
         remark: r['备注'] ?? '',
-        enabled: true
+        enabled: true,
+        isNew: false
       } as SampleData,
       ...sampleData.value
       ]
     })
 
+    // 重置到第一页，确保新增条目可见
+    currentPage.value = 1
     showSuccess('导入成功')
   }
   reader.readAsBinaryString(file)
@@ -1214,7 +1228,6 @@ const handleFile = (e: Event) => {
 const exportExcel = () => {
   const rows = sampleData.value.map(r => {
     const row: any = {
-      样本组: r.subgroupId,
       时间: r.datetime,
     }
     const n = subgroupSizeNum.value
