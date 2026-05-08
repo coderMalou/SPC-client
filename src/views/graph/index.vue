@@ -107,49 +107,51 @@
 
     <div class="divider"></div>
 
-    <!-- Xbar控制图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>Xbar控制图 (均值图)</h3>
+    <!-- 组合图表：Xbar控制图和X-R控制图 -->
+    <div class="info-card chart-row">
+      <div class="chart-item">
+        <div class="header">
+          <h3>Xbar控制图 (均值图)</h3>
+          <span class="label">Xbar图显示子组均值的稳定性，用于检测过程中心的偏移</span>
+        </div>
+        <div class="chart-content">
+          <div ref="xbarChart" class="chart-container"></div>
+        </div>
       </div>
-      <div class="chart-content">
-        <div ref="xbarChart" class="chart-container"></div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- X-R控制图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>X-R控制图 (极差图)</h3>
-      </div>
-      <div class="chart-content">
-        <div ref="xrChart" class="chart-container"></div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- S控制图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>S控制图 (标准差图)</h3>
-      </div>
-      <div class="chart-content">
-        <div ref="sChart" class="chart-container"></div>
+      <div class="divider-vertical"></div>
+      <div class="chart-item">
+        <div class="header">
+          <h3>R控制图 (极差图)</h3>
+          <span class="label">R图显示子组内变异(极差)的稳定性，用于检测过程编译的变化</span>
+        </div>
+        <div class="chart-content">
+          <div ref="xrChart" class="chart-container"></div>
+        </div>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- 样本与均值偏离表 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>样本与均值偏离表</h3>
+    <!-- 组合图表：S控制图和样本均值偏离图表 -->
+    <div class="info-card chart-row">
+      <div class="chart-item">
+        <div class="header">
+          <h3>S控制图 (标准差图)</h3>
+          <span class="label">S图显示子组内标准差的变化，用于监控过程变异性的稳定性</span>
+        </div>
+        <div class="chart-content">
+          <div ref="sChart" class="chart-container"></div>
+        </div>
       </div>
-      <div class="chart-content">
-        <div ref="deviationChart" class="chart-container"></div>
+      <div class="divider-vertical"></div>
+      <div class="chart-item">
+        <div class="header">
+          <h3>样本与均值偏离表</h3>
+          <span class="label">是组内均值、组内样本和整体均值的偏离记录</span>
+        </div>
+        <div class="chart-content">
+          <div ref="deviationChart" class="chart-container"></div>
+        </div>
       </div>
     </div>
 
@@ -159,14 +161,15 @@
     <div class="info-card">
       <div class="header">
         <h3>异常判断结果</h3>
-        <span class="last-check">最近检查: {{ anomalyInfo.lastCheckTime }}</span>
       </div>
       <div class="content">
-        <div class="anomaly-status">
+        
           <p :class="['status-text', anomalyInfo.status]">
             {{ anomalyInfo.message }}
           </p>
-          <el-tooltip effect="dark" placement="top">
+        <div class="anomaly-status">
+          <span class="last-check">最近检查: {{ anomalyInfo.lastCheckTime }}</span>
+          <el-tooltip effect="light" placement="top-end">
             <template #content>
               <div class="rule-tooltip">
                 <h4>判异准则:</h4>
@@ -179,60 +182,63 @@
             <span class="rule-desc">{{ anomalyInfo.enabledRule }}</span>
           </el-tooltip>
         </div>
+        
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- 过程能力直方图 -->
-    <div class="info-card">
-      <div class="header">
-        <h3>过程能力直方图</h3>
+    <!-- 组合图表：过程能力直方图和过程能力指标 -->
+    <div class="info-card chart-row">
+      <div class="metric-item-wrapper">
+        <div class="header">
+          <h3>过程能力指标</h3>
+        </div>
+        <div class="metric-content">
+          <div class="metric-item">
+            <span class="metric-label">Cp</span>
+            <span class="metric-value">{{ capabilityMetrics.cp }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Cpk</span>
+            <span class="metric-value">{{ capabilityMetrics.cpk }}</span>
+            <span class="metric-level" :class="getCapabilityLevel(capabilityMetrics.cpk)">
+              {{ getCapabilityLevelText(capabilityMetrics.cpk) }}
+            </span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Pp</span>
+            <span class="metric-value">{{ capabilityMetrics.pp }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Ppk</span>
+            <span class="metric-value">{{ capabilityMetrics.ppk }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">不良率(PPM)</span>
+            <span class="metric-value">{{ capabilityMetrics.defectRate }}%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">西格玛水平</span>
+            <span class="metric-value">{{ capabilityMetrics.sigmaLevel }}</span>
+          </div>
+        </div>
       </div>
-      <div class="chart-content">
-        <div ref="histogramChart" class="chart-container"></div>
+      <div class="divider-vertical"></div>
+      <div class="chart-item">
+        <div class="header">
+          <h3>过程能力直方图</h3>
+          <span class="label">展示实际数据与理论正态分布的对比，用于识别数据异常点和分布偏差</span>
+        </div>
+        <div class="chart-content">
+          <div ref="histogramChart" class="chart-container"></div>
+        </div>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- 过程能力指标 -->
-    <div class="stat-card">
-      <div class="header">
-        <h3>过程能力指标</h3>
-      </div>
-      <div class="content">
-        <div class="metric-item">
-          <span class="metric-label">Cp</span>
-          <span class="metric-value">{{ capabilityMetrics.cp }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Cpk</span>
-          <span class="metric-value">{{ capabilityMetrics.cpk }}</span>
-          <span class="metric-level" :class="getCapabilityLevel(capabilityMetrics.cpk)">
-            {{ getCapabilityLevelText(capabilityMetrics.cpk) }}
-          </span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Pp</span>
-          <span class="metric-value">{{ capabilityMetrics.pp }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Ppk</span>
-          <span class="metric-value">{{ capabilityMetrics.ppk }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">不良率(PPM)</span>
-          <span class="metric-value">{{ capabilityMetrics.defectRate }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">西格玛水平</span>
-          <span class="metric-value">{{ capabilityMetrics.sigmaLevel }}</span>
-        </div>
-      </div>
-    </div>
 
-    <div class="divider"></div>
 
     <!-- 最近数据点表格 -->
     <div class="info-card">
@@ -241,17 +247,17 @@
         <el-button type="text" @click="viewAllData">查看全部数据 →</el-button>
       </div>
       <div class="table-content">
-        <el-table :data="recentData" style="width: 100%">
-          <el-table-column prop="subgroupNo" label="子组编号" width="120" />
-          <el-table-column prop="sample1" label="样本1" width="100" />
-          <el-table-column prop="sample2" label="样本2" width="100" />
-          <el-table-column prop="sample3" label="样本3" width="100" />
-          <el-table-column prop="sample4" label="样本4" width="100" />
-          <el-table-column prop="sample5" label="样本5" width="100" />
-          <el-table-column prop="mean" label="均值(X̄)" width="100" />
-          <el-table-column prop="stdDev" label="标准差(σ)" width="100" />
-          <el-table-column prop="range" label="极差(R)" width="100" />
-          <el-table-column prop="inspectionTime" label="检测时间" width="180" />
+        <el-table :data="recentData" style="width: 100%; table-layout: auto;">
+          <el-table-column prop="subgroupNo" label="子组编号"/>
+          <el-table-column prop="sample1" label="样本1"/>
+          <el-table-column prop="sample2" label="样本2"/>
+          <el-table-column prop="sample3" label="样本3"/>
+          <el-table-column prop="sample4" label="样本4"/>
+          <el-table-column prop="sample5" label="样本5"/>
+          <el-table-column prop="mean" label="均值(X̄)"/>
+          <el-table-column prop="stdDev" label="标准差(σ)"/>
+          <el-table-column prop="range" label="极差(R)"/>
+          <el-table-column prop="inspectionTime" label="检测时间"/>
         </el-table>
       </div>
     </div>
@@ -264,6 +270,9 @@ import * as echarts from 'echarts'
 import type { EChartsOption, SeriesOption } from 'echarts'
 import { ElMessage, ElSelect, ElOption, ElButton, ElTag, ElTooltip, ElTable, ElTableColumn } from 'element-plus'
 import html2canvas from 'html2canvas'
+
+import { useRouter } from 'vue-router';
+const router = useRouter()
 
 // 筛选条件接口
 interface Filter {
@@ -571,7 +580,8 @@ const refreshData = (): void => {
 
 const viewAllData = (): void => {
   // 查看全部数据逻辑
-  ElMessage.info('跳转至任务详情页面')
+  // ElMessage.info('跳转至任务详情页面')
+  router.push('/task/detail')
 }
 
 // 计算控制限
@@ -624,7 +634,8 @@ const initCharts = (): void => {
           coord: [index, mean],
           value: mean,
           symbol: 'pin',
-          symbolSize: 20,
+          symbolSize: 0 <= mean && mean < 10 ? 45 :
+                        10 <= mean && mean < 100 ? 60 : 75,
           itemStyle: { color: '#ff4d4f' }
         }
       }
@@ -987,11 +998,11 @@ const generateMockData = (): void => {
   
   return {
     subgroupNo: d.subgroupNo,
-    sample1: formatNumber(d.samples[0], PRECISION_CONFIG.SAMPLE),
-    sample2: formatNumber(d.samples[1], PRECISION_CONFIG.SAMPLE),
-    sample3: formatNumber(d.samples[2], PRECISION_CONFIG.SAMPLE),
-    sample4: formatNumber(d.samples[3], PRECISION_CONFIG.SAMPLE),
-    sample5: formatNumber(d.samples[4], PRECISION_CONFIG.SAMPLE),
+    sample1: formatNumber(d.samples[0] as number, PRECISION_CONFIG.SAMPLE),
+    sample2: formatNumber(d.samples[1] as number, PRECISION_CONFIG.SAMPLE),
+    sample3: formatNumber(d.samples[2] as number, PRECISION_CONFIG.SAMPLE),
+    sample4: formatNumber(d.samples[3] as number, PRECISION_CONFIG.SAMPLE),
+    sample5: formatNumber(d.samples[4] as number, PRECISION_CONFIG.SAMPLE),
     mean: formatNumber(d.mean, PRECISION_CONFIG.MEAN),
     stdDev: formatNumber(d.stdDev, PRECISION_CONFIG.STD_DEV),
     range: formatNumber(d.range, PRECISION_CONFIG.RANGE),
@@ -1032,7 +1043,7 @@ window.addEventListener('resize', handleResize)
 .graph-container {
   width: 100%;
   height: 100%;
-  padding: 20px 60px;
+  padding: 80px 60px 20px;
   background-color: var(--color-model-bg);
   overflow-y: auto;
   overflow-x: hidden;
@@ -1087,7 +1098,6 @@ window.addEventListener('resize', handleResize)
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    border-bottom: solid 1.5px var(--color-model-bg);
   }
 
   .content {
@@ -1097,6 +1107,15 @@ window.addEventListener('resize', handleResize)
     flex-direction: row;
     flex-wrap: wrap;
     gap: 16px;
+
+    .status-text {
+    font-size: 16px;
+    font-weight: 500;
+    
+    &.normal { color: #52c41a; }
+    &.warning { color: #faad14; }
+    &.out-of-control { color: #ff4d4f; }
+  }
   }
 }
 
@@ -1155,6 +1174,7 @@ window.addEventListener('resize', handleResize)
   padding: 16px;
   background: var(--color-model-bg);
   border-radius: 6px;
+  height: 128px;
   
   .metric-label {
     font-size: 14px;
@@ -1191,21 +1211,149 @@ window.addEventListener('resize', handleResize)
   height: 400px;
 }
 
+.chart-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  
+  .chart-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    
+    .chart-content {
+      flex: 1;
+    }
+  }
+  
+  .metric-item-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    
+    .metric-content {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      padding: 20px;
+      flex: 1;
+      align-content: start;
+    }
+  }
+  
+  .divider-vertical {
+    width: 1px;
+    background-color: var(--color-model-bg);
+    margin: 16px 0;
+  }
+  
+  .header {
+    color: var(--color-dark-text);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .label {
+    font-size: 13px;
+    color: #000000aa;
+  }
+}
+
+// 移动端响应式样式
+@media (max-width: 768px) {
+  // 确保info-card不限制内容
+  .info-card {
+    overflow: visible !important;
+  }
+  
+  // 图表行垂直排列，避免重叠
+  .chart-row {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+  }
+  
+  // 每个图表项占满宽度
+  .chart-item,
+  .metric-item-wrapper {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex: none !important;
+    margin-bottom: 20px !important;
+  }
+  
+  // 隐藏垂直分割线
+  .divider-vertical {
+    display: none !important;
+  }
+  
+  // 图表内容容器
+  .chart-content {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  
+  // 图表容器必须明确尺寸
+  .chart-container {
+    width: 100% !important;
+    height: 300px !important;
+    min-height: 300px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  // 过程能力指标内容
+  .metric-content {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  
+  .metric-item {
+    flex: 1 1 45% !important;
+    min-width: 120px !important;
+  }
+  
+  // 工具栏移动端垂直布局
+  .tool-bar {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  
+  .filter {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  .filter-item {
+    width: 100% !important;
+  }
+  
+  .filter-item label {
+    display: block !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .filter-item .el-select {
+    width: 100% !important;
+  }
+}
+
 .anomaly-status {
   width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  
-  .status-text {
-    font-size: 16px;
-    font-weight: 500;
-    
-    &.normal { color: #52c41a; }
-    &.warning { color: #faad14; }
-    &.out-of-control { color: #ff4d4f; }
-  }
+  gap: 16px;
   
   .rule-desc {
     color: var(--color-Hlight-text);
@@ -1222,6 +1370,7 @@ window.addEventListener('resize', handleResize)
 
 .table-content {
   padding: 16px;
+  width: 100%;
 }
 
 .rule-tooltip {
@@ -1240,9 +1389,169 @@ window.addEventListener('resize', handleResize)
 }
 
 .divider {
-  width: 100%; 
+  width: 100%;
   border: solid 0.5px var(--color-model-bg);
   color: transparent;
   height: 0;
+}
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+  .graph-container {
+    padding: 70px 12px 12px;
+  }
+
+  // 筛选工具栏 - 垂直布局
+  .tool-bar {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .filter {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .filter-item {
+    width: 100%;
+    
+    label {
+      width: 60px;
+      font-size: 13px;
+    }
+    
+    .el-select {
+      width: calc(100% - 70px) !important;
+    }
+  }
+
+  .operation {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+    
+    .el-button {
+      flex: 1;
+      font-size: 13px;
+    }
+  }
+
+  // 信息卡片调整
+  .info-card {
+    .header {
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      
+      h3 {
+        font-size: 16px;
+        margin: 0;
+      }
+    }
+
+    .content {
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .sub {
+      min-width: calc(50% - 8px);
+      flex: 0 0 calc(50% - 8px);
+      padding: 8px;
+      
+      .label {
+        font-size: 12px;
+      }
+      
+      .value {
+        font-size: 13px;
+      }
+    }
+  }
+
+  // 图表区域
+  .chart-section {
+    padding: 12px;
+    
+    .chart-header {
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      
+      h4 {
+        font-size: 15px;
+        margin: 0;
+      }
+    }
+    
+    .chart-container {
+      height: 300px;
+    }
+  }
+
+  // 统计表格
+  .stats-table {
+    padding: 12px;
+    
+    table {
+      font-size: 12px;
+      
+      th, td {
+        padding: 8px 4px;
+      }
+    }
+  }
+
+  // 表格内容
+  .table-content {
+    padding: 10px;
+    overflow-x: auto;
+  }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+  .graph-container {
+    padding: 66px 8px 8px;
+  }
+
+  .tool-bar {
+    padding: 10px;
+  }
+
+  .filter-item {
+    label {
+      width: 50px;
+      font-size: 12px;
+    }
+  }
+
+  .operation {
+    .el-button {
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+  }
+
+  .info-card {
+    .sub {
+      min-width: 100%;
+      flex: 0 0 100%;
+    }
+  }
+
+  .chart-section .chart-container {
+    height: 250px;
+  }
+
+  .stats-table table {
+    font-size: 11px;
+  }
 }
 </style>

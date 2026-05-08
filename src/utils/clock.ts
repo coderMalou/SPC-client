@@ -32,7 +32,7 @@ export function useTime(
         }
 
         // 自定义日期格式化函数
-        const formatDateWithSeparator = (
+        const formatTimeStampWithSeparator = (
             date: Date, 
             locale: string, 
             options: Intl.DateTimeFormatOptions, 
@@ -56,7 +56,7 @@ export function useTime(
                 // 仅日期格式
                 if (dateSeparator) {
                     // 使用自定义分隔符格式化日期
-                    return formatDateWithSeparator(date, locale, dateOptions, dateSeparator)
+                    return formatTimeStampWithSeparator(date, locale, dateOptions, dateSeparator)
                 } else {
                     // 使用默认本地化日期格式
                     return date.toLocaleDateString(locale)
@@ -66,7 +66,7 @@ export function useTime(
                 // 完整日期时间格式
                 if (dateSeparator) {
                     // 分别格式化日期和时间部分
-                    const dateStr = formatDateWithSeparator(date, locale, dateOptions, dateSeparator)
+                    const dateStr = formatTimeStampWithSeparator(date, locale, dateOptions, dateSeparator)
                     const timeStr = date.toLocaleTimeString(locale, timeOptions)
                     return `${dateStr} ${timeStr}`
                 } else {

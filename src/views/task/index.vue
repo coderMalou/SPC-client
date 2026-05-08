@@ -31,18 +31,22 @@
                             :key="item.no" 
                             class="taskNo-list" 
                             :class="{active: currentNo === item.no}"
+                            @click="()=>handleTaskNoClick(item)"
                         >
                             <div 
                                 class="taskNo" 
                                 :class="{active: currentNo === item.no}" 
-                                @click="()=>handleTaskNoClick(item.no)"
                             >
                                 {{ item.no }}
                             </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; padding-right: 8px;">
                                 <div class="status-badge badge-done" v-if="item.status === 1">已关闭</div>
                                 <div class="status-badge status-done" v-else>已启用</div>
-                                <powerOff @click="()=>item.status = item.status ===  1 ? 0 : 1" />
+                                <powerOff @click="()=>{
+                                    isShowDialog = true
+                                    currentTicket = item
+                                }" />
+                                <!-- <powerOff @click="()=>item.status = item.status ===  1 ? 0 : 1" /> -->
                             </div>
                         </div>
                     </div>
@@ -53,14 +57,14 @@
                 <div class="divider"></div>
                 <div class="operate-bar">
                     <div class="operate-btn">
-                        <el-button type="primary">
+                        <el-button type="primary" @click="handleAdd">
                             <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 30px;">添加</span>
                         </el-button>
-                        <el-button type="primary">
+                        <!-- <el-button type="primary">
                             <el-icon><plusIcon /></el-icon>
                             <span style="min-width: 50px;">批量添加</span>
-                        </el-button>
+                        </el-button> -->
                         <el-button type="success" plain @click="handleExport">
                             <el-icon><exportIcon /></el-icon>
                             <span style="min-width: 30px;">导出</span>
@@ -100,26 +104,26 @@
                     <el-table
                         :data="pagedTableData"
                         row-key="tid"
-                        style="width: 100%; height: 100%"
+                        style="width: 100%; table-layout: auto;"
                         @selection-change="handleMultiSelect"
                     >
-                        <el-table-column type="selection" :selectable="()=>true" width="30"></el-table-column>
-                        <el-table-column prop="line" label="行号" width="55" align="center"></el-table-column>
-                        <el-table-column prop="ticket" label="工单号" width="100" align="center"></el-table-column>
-                        <el-table-column prop="pid" label="产品编码" width="80" align="center"></el-table-column>
-                        <el-table-column prop="pname" label="产品名称" width="80" align="center"></el-table-column>
-                        <el-table-column prop="tid" label="工作任务号" width="100" align="center"></el-table-column>
-                        <el-table-column prop="tname" label="工序作业名称" width="100" align="center"></el-table-column>
-                        <el-table-column prop="devid" label="设备编号" width="80" align="center"></el-table-column>
-                        <el-table-column prop="status" label="状态" width="70" align="center">
+                        <el-table-column type="selection" :selectable="()=>true"></el-table-column>
+                        <el-table-column prop="line" label="行号" align="center"></el-table-column>
+                        <el-table-column prop="ticket" label="工单号" align="center"></el-table-column>
+                        <el-table-column prop="pid" label="产品编码" align="center"></el-table-column>
+                        <el-table-column prop="pname" label="产品名称" align="center"></el-table-column>
+                        <el-table-column prop="tid" label="工作任务号" align="center"></el-table-column>
+                        <el-table-column prop="tname" label="工序作业名称" align="center"></el-table-column>
+                        <el-table-column prop="devid" label="设备编号" align="center"></el-table-column>
+                        <el-table-column prop="status" label="状态"  align="center">
                             <template #default="scope">
                                 <span :class="getStatusClass(scope.row.status)">
                                     {{ getStatusText(scope.row.status) }}
                                 </span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="stime" label="最近启用时间" width="100" align="center"></el-table-column>
-                        <el-table-column prop="ctime" label="创建时间" width="95" align="center"></el-table-column>
+                        <el-table-column prop="stime" label="最近启用时间" align="center"></el-table-column>
+                        <el-table-column prop="ctime" label="创建时间" align="center"></el-table-column>
                         <el-table-column label="操作" width="270" align="center">
                             <template #default="scope">
                                 <div class="operation-buttons">
@@ -132,6 +136,7 @@
                                         详情
                                     </el-button>
                                     <el-button 
+                                        v-if="currentTicket.status !== 1"
                                         type="warning" 
                                         size="small" 
                                         class="btn-edit"
@@ -148,10 +153,14 @@
                                         控制图
                                     </el-button>
                                     <el-button 
+                                        v-if="currentTicket.status !== 1"
                                         type="warning" 
                                         size="small" 
                                         class="btn-delete"
-                                        @click="handleDelete(scope.row)"
+                                        @click="()=>{
+                                            deletDialog = true
+                                            currentMission = scope.row
+                                        }"
                                     >
                                         删除
                                     </el-button>
@@ -181,20 +190,74 @@
                 </div>
             </div>
         </div>
-        <detail 
+        <el-dialog
+          v-model="isShowDialog"
+          title="提示"
+          :width="dialogWidth"
+        >
+            <span>是否{{ currentTicket.status === 1 ? "开启" : "关闭" }}当前工单:&nbsp;{{ currentNo }}?</span>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="isShowDialog = false">取消</el-button>
+                    <el-button type="primary" @click="()=>{
+                        currentTicket.status = currentTicket.status ===  1 ? 0 : 1
+                        isShowDialog = false
+                    }">确认</el-button>
+                </div>
+            </template>
+        </el-dialog>
+        <el-dialog
+          v-model="deletDialog"
+          title="提示"
+          :width="dialogWidth"
+        >
+            <span>是否删除当前任务?</span>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="deletDialog = false">取消</el-button>
+                    <el-button type="primary" @click="()=>{
+                        handleDelete(currentMission)
+                        deletDialog = false
+                    }">确认</el-button>
+                </div>
+            </template>
+        </el-dialog>
+        <detail
+            ref="detailRef"
             :is-show-details="isShowDetails"
             :selected-item="selectedItem"
-            @close="()=>isShowDetails = false"
+            :is-edit="isEdit"
+            @close="handleCloseDetail"
             @change="handleStatusChange"
+            @save="handleSaveTask"
         />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue' 
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import detail from './detail.vue';
+import { useRouter } from 'vue-router';
+const router = useRouter()
+
+// 响应式屏幕宽度检测
+const screenWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+const isMobile = computed(() => screenWidth.value <= 768)
+
+// 动态计算dialog宽度
+const dialogWidth = computed(() => {
+    return isMobile.value ? '300px' : '500px'
+})
+
+// 监听窗口大小变化
+const handleResize = () => {
+    screenWidth.value = window.innerWidth
+}
+
+// detail 组件引用
+const detailRef = ref<InstanceType<typeof import('./detail.vue').default> | null>(null)
 
 import searchScope from '@/components/icons/searchScope.vue';
 import downArrow from '@/components/icons/downArrow.vue';
@@ -216,6 +279,42 @@ const pageSize = ref(10)
 
 // 详情显示
 const isShowDetails = ref(false)
+const isEdit = ref(false)
+
+// 处理关闭详情弹窗
+const handleCloseDetail = async () => {
+    // 如果不是编辑模式，直接关闭
+    if (!isEdit.value) {
+        isShowDetails.value = false
+        return
+    }
+    
+    // 检查是否有未保存的修改
+    const hasUnsavedChanges = detailRef.value?.checkUnsavedChanges()
+    if (!hasUnsavedChanges) {
+        isShowDetails.value = false
+        return
+    }
+    
+    // 弹出确认对话框
+    try {
+        await ElMessageBox.confirm(
+            '是否保留修改并离开?',
+            '确认离开',
+            {
+                confirmButtonText: '离开',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }
+        )
+        // 用户确认离开
+        isShowDetails.value = false
+    } catch {
+        // 用户取消，保持弹窗打开
+    }
+}
+const isShowDialog = ref(false)
+const deletDialog = ref(false)
 
 // 原始数据
 const taskNoList = ref([
@@ -268,9 +367,11 @@ const rawTableData = ref<data[]>([
 ])
 
 // 选中内容
+const currentTicket = ref<any>(taskNoList.value[0])
 const currentNo = ref(taskNoList.value[0]?.no || '')
 const currentType = ref(0)
 const currentStatus = ref(0)
+const currentMission = ref()
 const selectedData = ref([])
 const selectedItem = ref<data>({})
 
@@ -351,8 +452,9 @@ const toggleTaskNoList = () => {
     isShowTaskNo.value = !isShowTaskNo.value
 }
 
-const handleTaskNoClick = (no: string) => {
-    currentNo.value = no
+const handleTaskNoClick = (item: any) => {
+    currentNo.value = item.no
+    currentTicket.value = item
 }
 
 const handleMultiSelect = (val:any) => {
@@ -360,14 +462,54 @@ const handleMultiSelect = (val:any) => {
 }
 
 const handleEdit = (row: any) => {
+    selectedItem.value = row
+    isShowDetails.value = true
+    isEdit.value = true
     console.log('编辑行:', row)
 }
+const handleAdd = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hour = String(now.getHours()).padStart(2, '0')
+    const minute = String(now.getMinutes()).padStart(2, '0')
+    const second = String(now.getSeconds()).padStart(2, '0')
+    const ctime = `${year}-${month}-${day} ${hour}:${minute}:${second}`
+    
+    selectedItem.value = {
+        ticket: currentNo.value,
+        ctime: ctime
+    }
+    isShowDetails.value = true
+    isEdit.value = true
+    console.log('新增任务')
+}
+
+const handleSaveTask = (taskData: any) => {
+    console.log('保存新任务:', taskData)
+    // 添加到任务列表
+    const newTask = {
+        ...taskData,
+        line: taskData.line || 1,
+        no: taskData.tid || `T${Date.now()}`,
+        status: taskData.status === '0' ? 0 : 1,
+        ctime: new Date().toISOString().split('T')[0]
+    }
+    rawTableData.value.unshift(newTask)
+    // 关闭详情页
+    isShowDetails.value = false
+    ElMessage.success('任务添加成功')
+}
+
 const handleDetail = (row: any) => {
     selectedItem.value = row
     isShowDetails.value = true
+    isEdit.value = false
     console.log('详情:', row)
 }
 const handleChart = (row: any) => {
+    router.push('/graph')
     console.log('控制图:', row)
 }
 const handleDelete = (row: any) => {
@@ -528,6 +670,13 @@ const handleStatusChange = () => {
 // 初始化
 onMounted(() => {
     console.log('组件已加载')
+    // 监听窗口大小变化
+    window.addEventListener('resize', handleResize)
+})
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -535,7 +684,7 @@ onMounted(() => {
 .task-container {
     width: 100%;
     height: 100%;
-    padding: 20px 60px;
+    padding: 80px 60px 20px;
     background-color: var(--color-model-bg);
     overflow-y: auto;
     overflow-x: hidden;
@@ -571,6 +720,28 @@ onMounted(() => {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
     margin-bottom: 0;
     padding: 0 10px;
+}
+
+// 移动端响应式样式
+@media (max-width: 768px) {
+    .task-number {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    // 确保父容器不隐藏
+    .task-total {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
 }
 
 .search-bar {
@@ -636,6 +807,7 @@ onMounted(() => {
 }
 
 .taskNo-container {
+    padding: 0 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -643,11 +815,10 @@ onMounted(() => {
 }
 
 .taskNo-list {
-    margin-left: 12px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 2px 0;
-    gap: 16px;
     border-radius: 8px;
     transition: all 0.2s ease;
 }
@@ -748,7 +919,6 @@ onMounted(() => {
 .operate-btn {
     width: 380px;
     display: flex;
-    justify-content: space-between;
     padding: 8px 0;
     font-size: 14px;
     border-radius: 4px;
@@ -785,8 +955,8 @@ onMounted(() => {
 
 .table-container {
     flex: 1;
-    width: calc(100vw - 375px);
-    overflow-x: auto;
+    width: 100%;
+    overflow-x: hidden;
     overflow-y: hidden; 
     border: 1px solid #ebeef5;
     border-radius: 4px;
@@ -820,6 +990,142 @@ onMounted(() => {
     
     .el-select .el-input__inner {
         font-size: 14px;
+    }
+}
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+    .task-container {
+        padding: 70px 12px 12px;
+    }
+
+    // 隐藏工单号侧边栏
+    .task-number {
+        display: none;
+    }
+
+    .task-total {
+        gap: 0;
+    }
+
+    // 操作栏垂直布局
+    .operate-bar {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 8px;
+    }
+
+    .operate-btn {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    // 筛选搜索区域垂直布局
+    .filter-search {
+        flex-wrap: wrap;
+        width: 100%;
+        
+        .el-select {
+            width: 48% !important;
+        }
+        
+        .el-input {
+            width: 48% !important;
+        }
+        
+        .el-button {
+            width: 100%;
+            margin-top: 8px;
+        }
+    }
+
+    // 表格容器
+    .table-container {
+        overflow-x: auto;
+        
+        .el-table {
+            font-size: 12px;
+        }
+    }
+
+    // 操作按钮调整
+    .operation-buttons {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: 4px;
+        
+        .el-button {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+    }
+
+    // 分页调整
+    .pagination-container {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+    }
+
+    // 标题调整
+    .task-list > div:first-child {
+        font-size: 16px !important;
+        padding: 8px !important;
+    }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+    .task-container {
+        padding: 66px 8px 8px;
+    }
+
+    .operate-btn {
+        .el-button {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+    }
+
+    .filter-search {
+        .el-select, .el-input {
+            width: 100% !important;
+            margin-bottom: 4px;
+        }
+        
+        .el-button {
+            margin-top: 4px;
+        }
+    }
+
+    .table-container {
+        .el-table {
+            font-size: 11px;
+            
+            .cell {
+                padding: 4px;
+            }
+        }
+    }
+
+    // 隐藏部分列
+    .el-table {
+        .el-table_column {
+            &-3, &-4, &-5, &-6 {
+                display: none;
+            }
+        }
+    }
+
+    .task-list > div:first-child {
+        font-size: 14px !important;
     }
 }
 </style>

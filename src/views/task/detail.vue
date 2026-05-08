@@ -6,12 +6,17 @@
                     <span style="font-size: 18px;text-align: center;">任务管理</span>
                 </el-button>
                 <span style="color: #ccc; font-size: 21px;">></span>
-                <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">任务详情</span>
+                <span style="font-size: 18px;text-align: center;color: var(--color-dark-text);">{{ isAddMode ? '新增任务' : '任务详情' }}</span>
             </div>
-            <el-button @click="$emit('close')">
-                <el-icon><left-arrow /></el-icon>
-                <span style="font-size: 18px;">返回任务管理</span>
-            </el-button>
+            <div style="display: flex; gap: 10px;">
+                <el-button type="primary" v-if="isEdit" @click="handleSave">
+                    <span style="font-size: 18px;">保存任务</span>
+                </el-button>
+                <el-button @click="$emit('close')">
+                    <el-icon><left-arrow /></el-icon>
+                    <span style="font-size: 18px;">返回任务管理</span>
+                </el-button>
+            </div>
         </div>
         <div class="stat-card"><!--基本信息-->
             <div class="stat-card header"><span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">任务基本信息</span></div>
@@ -19,35 +24,35 @@
             <div class="stat-card content">
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工作任务号</span>
-                    <el-input disabled v-model="selectedItem.tid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.tid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工单号</span>
-                    <el-input disabled v-model="selectedItem.ticket"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.ticket"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">行号</span>
-                    <el-input disabled v-model="selectedItem.line"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.line"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">产品编码</span>
-                    <el-input disabled v-model="selectedItem.pid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">产品名称</span>
-                    <el-input disabled v-model="selectedItem.pname"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.pname"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">规格/型号</span>
-                    <el-input disabled v-model="spec"></el-input>
+                    <el-input :disabled="!isEdit" v-model="spec"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">计量单位</span>
-                    <el-input disabled v-model="unit"></el-input>
+                    <el-input :disabled="!isEdit" v-model="unit"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工艺路线名称</span>
-                    <el-input disabled v-model="technic"></el-input>
+                    <el-input :disabled="!isEdit" v-model="technic"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">创建时间</span>
@@ -60,6 +65,7 @@
                     </span>
                     <el-switch
                         v-model="curStatus"
+                        :disabled="!isEdit"
                         @change="$emit('change')"
                     />
                 </div>
@@ -72,51 +78,52 @@
             <div class="stat-card content">
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工序序号</span>
-                    <el-input disabled v-model="techList.techid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.techid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">工序作业名称</span>
-                    <el-input disabled v-model="techList.techname"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.techname"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">质量特性</span>
-                    <el-input disabled v-model="techList.ch"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.ch"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">目标标准值</span>
-                    <el-input disabled v-model="techList.standard"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.standard"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">USL</span>
-                    <el-input disabled v-model="techList.usl"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.usl"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">LSL</span>
-                    <el-input disabled v-model="techList.lsl"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.lsl"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">组内样本量</span>
-                    <el-input disabled v-model="techList.set"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.set"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">总体样本量</span>
-                    <el-input disabled v-model="techList.total"></el-input>
+                    <el-input :disabled="!isEdit" v-model="techList.total"></el-input>
                 </div>
-                <div class="stat-card sub">
+                <!-- <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">作业设备编码</span>
-                    <el-input disabled v-model="selectedItem.devid"></el-input>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
                 </div>
                 <div class="stat-card sub">
                     <span style="color: var(--color-dark-text);">仪器/治具编码</span>
-                    <el-input disabled v-model="selectedItem.devid"></el-input>
-                </div>
+                    <el-input :disabled="!isEdit" v-model="selectedItem.devid"></el-input>
+                </div> -->
             </div>
         </div>
         <div class="measure-table">
             <div class="stat-card header">
-                <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid+`-${selectedItem.pname}` }}</span>
-                <div style="display: flex; align-items: center;">
-                     <el-button type="primary" plain @click="addNewRow">
+                <span style="font-size: 18px; font-weight: bold; color: var(--color-dark-text);">{{ "测量数据表-"+selectedItem.pid || ""+`-${selectedItem.pname ?? ""}` }}</span>
+                <!-- PC端按钮布局 -->
+                <div v-if="!isMobile" style="display: flex; align-items: center; gap: 8px;">
+                     <el-button type="primary" plain :disabled="!isEdit" @click="addNewRow">
                         <el-icon><list-icon /></el-icon> 新增数据
                     </el-button>
 
@@ -124,25 +131,50 @@
                         <el-icon><excel-icon /></el-icon> 导出导入模板
                     </el-button>
 
-                    <el-button type="success" plain @click="importExcel">
+                    <el-button type="success" plain :disabled="!isEdit" @click="importExcel">
                         <el-icon><excel-icon /></el-icon> 导入Excel
+                      
                     </el-button>
 
                     <el-button type="success" plain @click="exportExcel">
                         <el-icon><excel-icon /></el-icon> 导出Excel
                     </el-button>
                 </div>
+                <!-- 移动端下拉菜单 -->
+                <div v-else class="mobile-actions">
+                    <el-dropdown trigger="click" @command="handleCommand">
+                        <el-button type="primary">
+                            <el-icon><more-filled /></el-icon> 更多操作
+                        </el-button>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item :command="'add'">
+                                    <el-icon><list-icon /></el-icon> 新增数据
+                                </el-dropdown-item>
+                                <el-dropdown-item :command="'exportTemplate'">
+                                    <el-icon><excel-icon /></el-icon> 导出导入模板
+                                </el-dropdown-item>
+                                <el-dropdown-item :command="'import'">
+                                    <el-icon><excel-icon /></el-icon> 导入Excel
+                                </el-dropdown-item>
+                                <el-dropdown-item :command="'export'">
+                                    <el-icon><excel-icon /></el-icon> 导出Excel
+                                </el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                </div>
             </div>
             <div class="divider"></div>
             <div class="control-chart-data">
                 <el-table
                     :data="tableData"
-                    style="width: 100%;"
+                    style="width: 100%; table-layout: auto;"
                     row-key="id"
                     :row-class-name="getRowClass"
                     :header-row-class-name="'header-row'"
                 >
-                    <el-table-column prop="subgroupId" label="样本组" width="100" align="center">
+                    <el-table-column prop="subgroupId" label="样本组" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -153,7 +185,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="datetime" label="日期时间" width="120" align="center">
+                    <el-table-column prop="datetime" label="日期时间" align="center">
                     <template #default="scope">
                         <el-input
                           v-if="scope.row.isNew"
@@ -165,7 +197,7 @@
                     </el-table-column>
 
                     <!-- 五个样本值 -->
-                    <el-table-column prop="value1" label="值1" width="85" align="center">
+                    <el-table-column prop="value1" label="值1" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -179,7 +211,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value2" label="值2" width="85" align="center">
+                    <el-table-column prop="value2" label="值2" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -193,7 +225,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value3" label="值3" width="85" align="center">
+                    <el-table-column prop="value3" label="值3" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -207,7 +239,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value4" label="值4" width="85" align="center">
+                    <el-table-column prop="value4" label="值4" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -221,7 +253,7 @@
                     </template>
                     </el-table-column>
 
-                    <el-table-column prop="value5" label="值5" width="85" align="center">
+                    <el-table-column prop="value5" label="值5" align="center">
                     <template #default="scope">
                         <el-input
                         v-if="scope.row.isNew"
@@ -236,7 +268,7 @@
                     </el-table-column>
 
                     <!-- 均值 -->
-                    <el-table-column prop="mean" label="均值" width="85" align="center">
+                    <el-table-column prop="mean" label="均值" align="center">
                     <template #default="scope">
                         <span v-if="!scope.row.isNew" :class="getMeanStatusClass(scope.row.mean)">
                         {{ scope.row.mean }}
@@ -246,23 +278,23 @@
                     </el-table-column>
 
                     <!-- 极差 -->
-                    <el-table-column prop="range" label="极差" width="85" align="center">
+                    <el-table-column prop="range" label="极差" align="center">
                     <template #default="scope">
                         {{ scope.row.isNew ? (scope.row.range ?? '--') : scope.row.range }}
                     </template>
                     </el-table-column>
 
                     <!-- 整体均值 / 极差（原逻辑） -->
-                    <el-table-column prop="overallMean" label="整体均值" width="85" align="center">
+                    <el-table-column prop="overallMean" label="整体均值" align="center">
                     <template #default>{{ overallMean }}</template>
                     </el-table-column>
 
-                    <el-table-column prop="overallRange" label="整体极差" width="85" align="center">
+                    <el-table-column prop="overallRange" label="整体极差" align="center">
                     <template #default>{{ overallRange }}</template>
                     </el-table-column>
 
                     <!-- 状态 -->
-                    <el-table-column prop="status" label="状态" width="100" align="center">
+                    <el-table-column prop="status" label="状态" align="center">
                     <template #default="scope">
                         <el-tag
                         v-if="!scope.row.isNew"
@@ -277,7 +309,7 @@
                     </el-table-column>
 
                     <!-- 操作员 -->
-                    <el-table-column prop="operator" label="操作员" width="100" align="center">
+                    <el-table-column prop="operator" label="操作员" align="center">
                     <template #default="scope">
                         <el-input v-if="scope.row.isNew" v-model="scope.row.operator" size="small" />
                         <span v-else>{{ scope.row.operator }}</span>
@@ -287,7 +319,23 @@
                     <!-- 备注 + 确认取消 -->
                     <el-table-column prop="remark" label="备注" width="120" align="center">
                     <template #default="scope">
-                        <template v-if="scope.row.isNew">
+                        <!-- <template v-if="scope.row.isNew">
+                        <el-button size="small" type="success" @click="confirmNewRow(scope.row)">
+                            确认
+                        </el-button>
+                        <el-button size="small" type="danger" @click="cancelNewRow(scope.row.id)">
+                            取消
+                        </el-button>
+                        </template> -->
+                        <el-input v-if="scope.row.isNew" v-model="scope.row.remark" size="small" />
+                        <span v-else>{{ scope.row.remark }}</span>
+                    </template>
+                    </el-table-column>
+
+                    <!-- 启用状态 -->
+                    <el-table-column prop="switch" label="启用状态" align="center" fixed="right" width="120">
+                    <template #default="scope">
+                      <template v-if="scope.row.isNew">
                         <el-button size="small" type="success" @click="confirmNewRow(scope.row)">
                             确认
                         </el-button>
@@ -295,15 +343,10 @@
                             取消
                         </el-button>
                         </template>
-                        <span v-else>{{ scope.row.remark }}</span>
-                    </template>
-                    </el-table-column>
-
-                    <!-- 启用状态 -->
-                    <el-table-column prop="switch" label="启用状态" width="100" align="center" fixed="right">
-                    <template #default="scope">
                         <el-switch
+                        v-else
                         v-model="scope.row.enabled"
+                        :disabled="!isEdit"
                         @change="handleSwitchChange(scope.row)"
                         />
                     </template>
@@ -334,16 +377,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage } from 'element-plus';
+import { MoreFilled } from '@element-plus/icons-vue';
 import leftArrow from '@/components/icons/leftArrow.vue';
 import listIcon from '@/components/icons/listIcon.vue';
 import excelIcon from '@/components/icons/excelIcon.vue';
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useTime } from '@/utils/clock';
+import { formatTimeStamp } from '@/utils/functions';
 
 const { formattedTime } = useTime(1000, 'full', 'zh-CN', '-')
+
+// 移动端检测
+const isMobile = ref(window.innerWidth <= 768)
+
+// 监听窗口大小变化
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+// 下拉菜单命令处理
+const handleCommand = (command: string) => {
+  switch (command) {
+    case 'add':
+      addNewRow()
+      break
+    case 'exportTemplate':
+      exportTemplate()
+      break
+    case 'import':
+      importExcel()
+      break
+    case 'export':
+      exportExcel()
+      break
+  }
+}
 
 interface data {
     line?: number;
@@ -361,9 +440,31 @@ interface data {
 const prop = defineProps<{
     isShowDetails: boolean;
     selectedItem: data;
+    isEdit: boolean; //true：编辑模式 false：只读模式
 }>()
 
-defineEmits(['close','change'])
+// 计算属性：判断是否为新增模式
+const isAddMode = computed(() => {
+    return prop.isEdit && (!prop.selectedItem || !prop.selectedItem.tid)
+})
+
+// 保存任务处理函数
+const handleSave = () => {
+    // 收集表单数据
+    const taskData = {
+        ...prop.selectedItem,
+        spec: spec.value,
+        unit: unit.value,
+        technic: technic.value,
+        techList: techList.value,
+        status: curStatus.value ? '0' : '1'
+    }
+    // 触发保存事件
+    emit('save', taskData)
+    console.log('保存任务:', taskData)
+}
+
+const emit = defineEmits(['close','change', 'save'])
 
 const spec = ref('Ø50×30')
 const unit = ref('mm')
@@ -377,6 +478,25 @@ const techList = ref({
     lsl: '50',
     set: '5',
     total: '5',
+})
+
+watch(()=>isAddMode.value, (val)=> {
+  if (val) {
+    spec.value = ''
+    unit.value = ''
+    technic.value = ''
+    techList.value = {
+      techid: '',
+      techname: '',
+      ch: '',
+      standard: '',
+      usl: '',
+      lsl: '',
+      set: '',
+      total: '',
+    }
+    sampleData.value = []
+  }
 })
 
 interface SampleData {
@@ -406,17 +526,82 @@ const overallRange = ref(0)
 
 const editingRows = ref<SampleData[]>([])
 
-const tableData = computed(() => [
-  ...editingRows.value,
-  ...sampleData.value
-])
+// 原始数据副本，用于检测未保存的修改
+const originalData = ref<any>(null)
+
+// 保存原始数据副本
+const saveOriginalData = () => {
+  originalData.value = {
+    editingRows: JSON.parse(JSON.stringify(editingRows.value)),
+    sampleData: JSON.parse(JSON.stringify(sampleData.value)),
+    techList: JSON.parse(JSON.stringify(techList.value)),
+    spec: spec.value,
+    unit: unit.value,
+    technic: technic.value
+  }
+}
+
+// 计算属性：检测是否有未保存的修改
+const hasUnsavedChanges = computed(() => {
+  if (!prop.isEdit || !originalData.value) {
+    return false
+  }
+
+  // 检查是否有正在编辑的新增行
+  if (editingRows.value.length > 0) {
+    return true
+  }
+
+  // 检查样本数据是否发生变化
+  if (JSON.stringify(sampleData.value) !== JSON.stringify(originalData.value.sampleData)) {
+    return true
+  }
+
+  // 检查工序信息是否发生变化
+  if (JSON.stringify(techList.value) !== JSON.stringify(originalData.value.techList)) {
+    return true
+  }
+
+  // 检查其他表单字段是否发生变化
+  if (spec.value !== originalData.value.spec) {
+    return true
+  }
+  if (unit.value !== originalData.value.unit) {
+    return true
+  }
+  if (technic.value !== originalData.value.technic) {
+    return true
+  }
+
+  return false
+})
+
+// beforeunload 事件处理函数
+const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+  if (prop.isEdit && hasUnsavedChanges.value) {
+    event.returnValue = '您有未保存的修改，确定要离开吗？'
+    return event.returnValue
+  }
+}
+
+// 检查未保存修改的方法（供父组件调用）
+const checkUnsavedChanges = () => {
+  return hasUnsavedChanges.value
+}
 
 // 计算属性：分页后的数据
 const pagedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
+  console.log("测量数据表：",sampleData.value.slice(start, end))
   return sampleData.value.slice(start, end)
 })
+
+// 计算属性：表格显示的数据
+const tableData = computed(() => [
+  ...editingRows.value,
+  ...pagedData.value
+])
 
 const curStatus = computed(() => {
     return prop.selectedItem.status === '0'
@@ -425,7 +610,7 @@ const curStatus = computed(() => {
 // 加载数据
 const loadData = () => {
   // 固定示例数据
-  const sampleGroups = [
+  const sampleGroups = !isAddMode.value ? [
     { id: '样本组1', values: [42.64, 48.02, 54.06, 57.82, 62.40] },
     { id: '样本组2', values: [57.82, 59.28, 40.00, 47.00, 49.92] },
     { id: '样本组3', values: [50.96, 45.12, 59.28, 43.00, 38.40] },
@@ -436,7 +621,7 @@ const loadData = () => {
     { id: '样本组8', values: [62.40, 60.00, 41.82, 59.28, 62.40] },
     { id: '样本组9', values: [57.20, 47.04, 53.04, 57.82, 41.82] },
     { id: '样本组10', values: [57.12, 46.80, 54.06, 38.40, 53.04] }
-  ]
+  ] : []
 
   const groupMeans: number[] = [] // 组内均值
   const groupRanges: number[] = [] // 组内极差
@@ -484,6 +669,7 @@ const loadData = () => {
     }
     
     sampleData.value.push(sample)
+    console.log("初始化测量数据：",sampleData.value)
   })
   
   // 计算整体均值和极差
@@ -626,7 +812,7 @@ const cancelNewRow = (id: string) => {
 
 const exportTemplate = () => {
   const headers = [
-    ['样本组', '时间', '值1', '值2', '值3', '值4', '值5']
+    ['样本组', '时间', '值1', '值2', '值3', '值4', '值5', '操作员', '备注']
   ]
   const sheet = XLSX.utils.aoa_to_sheet(headers)
   const wb = XLSX.utils.book_new()
@@ -652,7 +838,7 @@ const handleFile = (e: Event) => {
 
   const reader = new FileReader()
   reader.onload = evt => {
-    const wb = XLSX.read(evt.target?.result, { type: 'binary' })
+    const wb = XLSX.read(evt.target?.result, { type: 'binary', cellDates: true, cellNF: false })
     const name = wb.SheetNames[0]
     if (!name) {
         ElMessage.error("Excel 中未找到工作表")
@@ -669,11 +855,20 @@ const handleFile = (e: Event) => {
       const values = [r['值1'], r['值2'], r['值3'], r['值4'], r['值5']]
       const mean = values.reduce((a, b) => a + b, 0) / 5
       const range = Math.max(...values) - Math.min(...values)
+      let status: '正常' | '警告' | '异常' = '正常'
+      if (mean > 50.06 || mean < 49.98) {
+        status = '异常'
+      } else if (mean > 50.04 || mean < 50.00) {
+        status = '警告'
+      }
+      
+      const remark = status === '正常' ? '' : '需关注'
 
-      sampleData.value.push({
+      sampleData.value = [
+        {
         id: `import-${Date.now()}-${i}`,
         subgroupId: r['样本组'],
-        datetime: r['时间'],
+        datetime: formatTimeStamp(r['时间']),
         value1: r['值1'],
         value2: r['值2'],
         value3: r['值3'],
@@ -681,8 +876,12 @@ const handleFile = (e: Event) => {
         value5: r['值5'],
         mean: +mean.toFixed(2),
         range: +range.toFixed(2),
-        status: '正常'
-      } as SampleData)
+        status: r['状态'] ?? status,
+        operator: r['操作员'],
+        remark: r['备注'] ?? remark
+      } as SampleData,
+      ...sampleData.value
+      ]
     })
 
     ElMessage.success('导入成功')
@@ -703,7 +902,9 @@ const exportExcel = () => {
     值5: r.value5,
     均值: r.mean,
     极差: r.range,
-    状态: r.status
+    状态: r.status,
+    操作员: r.operator,
+    备注: r.remark
   }))
 
   const sheet = XLSX.utils.json_to_sheet(rows)
@@ -717,7 +918,17 @@ const exportExcel = () => {
 // 初始化
 onMounted(() => {
   loadData()
+  saveOriginalData()
+  window.addEventListener('beforeunload', handleBeforeUnload)
 })
+
+// 组件卸载前移除事件监听
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
+
+// 暴露方法供父组件调用
+defineExpose({ checkUnsavedChanges })
 </script>
 
 <style scoped lang="scss">
@@ -817,20 +1028,20 @@ onMounted(() => {
 }
 
 .control-chart-data {
-  width: calc(100vw - 120px);
+  width: 100%;
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
 }
 
 .table-container {
-  width: calc(100vw - 120px);
-  overflow-x: auto;
+  width: 100%;
+  overflow-x: hidden;
   border: 1px solid #ebeef5;
   border-radius: 4px;
   
   :deep(.el-table) {
-    max-width: calc(100vw - 120px);
+    width: 100%;
     
     .header-row {
       background-color: #f5f7fa;
@@ -921,6 +1132,156 @@ onMounted(() => {
   
   .status-tag {
     font-size: 10px;
+  }
+}
+
+/* ====================================
+   移动端适配 (768px 以下)
+   ==================================== */
+@media (max-width: 768px) {
+  .task-detail {
+    padding: 70px 12px 12px;
+  }
+
+  // 顶部导航区域
+  .redirector {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    
+    > div:first-child {
+      font-size: 14px !important;
+      gap: 6px !important;
+      
+      span {
+        font-size: 14px !important;
+      }
+    }
+    
+    > div:last-child {
+      flex-wrap: wrap;
+      justify-content: center;
+      
+      .el-button {
+        font-size: 12px;
+        padding: 8px 12px;
+        
+        span {
+          font-size: 14px !important;
+        }
+      }
+    }
+  }
+
+  // 卡片标题调整
+  .stat-card.header {
+    padding: 12px;
+    
+    span {
+      font-size: 16px !important;
+    }
+  }
+
+  // 表单内容区域 - 改为两列
+  .stat-card.content {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .stat-card.sub {
+    min-width: calc(50% - 8px);
+    flex: 0 0 calc(50% - 8px);
+    
+    span {
+      font-size: 13px;
+    }
+  }
+
+  // 输入框调整
+  .el-input {
+    font-size: 13px;
+  }
+
+  // 按钮区域
+  .button-group {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    
+    .el-button {
+      width: 100%;
+    }
+  }
+
+  // 表格区域
+  .table-container {
+    overflow-x: auto;
+    
+    .el-table {
+      font-size: 12px;
+    }
+  }
+
+  // 分页调整
+  .pagination-container {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+}
+
+/* ====================================
+   小屏幕设备 (480px 以下)
+   ==================================== */
+@media (max-width: 480px) {
+  .task-detail {
+    padding: 0 8px 8px;
+  }
+
+  .redirector {
+    padding: 10px;
+    
+    > div:first-child {
+      font-size: 13px !important;
+      flex-wrap: wrap;
+      
+      span {
+        font-size: 13px !important;
+      }
+    }
+  }
+
+  .stat-card.header {
+    padding: 10px;
+    
+    span {
+      font-size: 14px !important;
+    }
+  }
+
+  .stat-card.content {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .stat-card.sub {
+    min-width: 100%;
+    flex: 0 0 100%;
+    
+    span {
+      font-size: 12px;
+    }
+  }
+
+  .el-input {
+    font-size: 12px;
+  }
+
+  .button-group {
+    .el-button {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
   }
 }
 </style>

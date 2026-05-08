@@ -1,0 +1,209 @@
+/* ===================================
+   移动端适配基础设施
+   =================================== */
+
+/* 移动端断点变量 */
+:root {
+  --mobile-breakpoint: 768px;
+  --mobile-small: 480px;
+  --mobile-large: 1024px;
+}
+
+/* ===================================
+   响应式工具类
+   =================================== */
+
+/* 移动端隐藏 - 在 breakpoint 宽度以下隐藏 */
+@media (max-width: var(--mobile-breakpoint)) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* 移动端显示 - 在 breakpoint 宽度以上隐藏，以下显示 */
+@media (min-width: calc(var(--mobile-breakpoint) + 1px)) {
+  .show-on-mobile {
+    display: none !important;
+  }
+}
+
+/* 移动端全宽 */
+.mobile-full-width {
+  width: 100%;
+}
+
+/* 移动端内边距 */
+.mobile-padding {
+  padding: 12px;
+}
+
+/* 移动端文本居中 */
+.mobile-text-center {
+  text-align: center;
+}
+
+/* ===================================
+   移动端基础样式调整
+   =================================== */
+
+@media (max-width: var(--mobile-breakpoint)) {
+  /* 基础元素调整 */
+  body {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 18px;
+  }
+
+  /* 按钮调整 */
+  .el-button,
+  .n-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .el-button--small,
+  .n-button--small {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* 表单输入框调整 */
+  .el-input__wrapper,
+  .n-input .n-input-wrapper {
+    padding: 4px 8px;
+  }
+
+  .el-input__inner,
+  .n-input .n-input-wrapper input {
+    font-size: 14px;
+  }
+
+  /* 卡片样式调整 */
+  .el-card,
+  .n-card {
+    margin-bottom: 12px;
+    padding: 12px;
+  }
+
+  /* 表格调整 */
+  .el-table {
+    font-size: 12px;
+  }
+
+  .el-table__header th,
+  .el-table__body td {
+    padding: 8px 4px;
+  }
+
+  /* Flex 布局方向调整 */
+  .flex-row {
+    flex-direction: column;
+  }
+
+  /* 搜索栏调整 */
+  .search-bar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .search-bar > * {
+    width: 100%;
+  }
+
+  /* 间距调整 */
+  .mobile-gap {
+    gap: 8px;
+  }
+
+  /* 表格工具栏 */
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* 表单布局 */
+  .el-form-item,
+  .n-form-item {
+    margin-bottom: 12px;
+  }
+
+  /* 对话框 */
+  .el-dialog,
+  .n-modal,
+  .n-drawer {
+    width: 90% !important;
+    max-width: none !important;
+    margin: 10px !important;
+  }
+
+  /* 菜单 */
+  .el-menu--horizontal {
+    flex-wrap: wrap;
+  }
+
+  /* 分页 */
+  .el-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* ===================================
+   小屏幕设备 (小于 480px)
+   =================================== */
+
+@media (max-width: var(--mobile-small)) {
+  body {
+    font-size: 13px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  h3 {
+    font-size: 16px;
+  }
+
+  .el-button,
+  .n-button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .el-input__inner,
+  .n-input .n-input-wrapper input {
+    font-size: 13px;
+  }
+
+  /* 卡片更小内边距 */
+  .el-card,
+  .n-card {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+}
+
+/* ===================================
+   大屏幕设备 - 用于覆盖小屏幕样式
+   =================================== */
+
+@media (min-width: calc(var(--mobile-breakpoint) + 1px)) {
+  .show-on-mobile-only {
+    display: none !important;
+  }
+}
