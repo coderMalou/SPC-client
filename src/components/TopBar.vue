@@ -2,7 +2,7 @@
     <div class="top-bar">
         <span style="display: flex; gap: 10px;">
             <div class="logo">📊</div>
-            <div class="system-name">SPC统计过程控制系统</div>
+            <div class="system-name">SPC质量管理系统</div>
         </span>
         <nav class="main-menu">
             <div class="menu-item":class="{active:!curTab}" @click="handleGraph">控制图</div>
